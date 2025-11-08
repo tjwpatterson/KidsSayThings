@@ -31,9 +31,11 @@ export async function generateBookPDF({
       const isClassic = theme === "classic"
 
       // Create PDF document with larger margins for minimalist look
+      // Configure for serverless environment
       const doc = new PDFDocument({
         size: [size.width, size.height],
         margin: 60, // Increased margins for more white space
+        bufferPages: true, // Buffer pages for serverless
       })
 
       const chunks: Buffer[] = []

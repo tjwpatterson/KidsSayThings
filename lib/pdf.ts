@@ -1,3 +1,4 @@
+// PDF generation using pdfkit (no browser required)
 import PDFDocument from "pdfkit"
 import type { Book, Entry, Person } from "@/lib/types"
 import { format } from "date-fns"

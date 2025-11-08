@@ -24,7 +24,7 @@ interface QuickAddCardProps {
 
 export default function QuickAddCard({ householdId }: QuickAddCardProps) {
   const [text, setText] = useState("")
-  const [selectedPerson, setSelectedPerson] = useState<string>("")
+  const [selectedPerson, setSelectedPerson] = useState<string>("none")
   const [tags, setTags] = useState<string>("")
   const [persons, setPersons] = useState<Person[]>([])
   const [loading, setLoading] = useState(false)
@@ -98,7 +98,7 @@ export default function QuickAddCard({ householdId }: QuickAddCardProps) {
         .from("entries")
         .insert({
           household_id: householdId,
-          said_by: selectedPerson || null,
+          said_by: selectedPerson && selectedPerson !== "none" ? selectedPerson : null,
           captured_by: user.id,
           text: text.trim(),
           entry_type: "quote",
@@ -131,7 +131,7 @@ export default function QuickAddCard({ householdId }: QuickAddCardProps) {
 
       // Reset form
       setText("")
-      setSelectedPerson("")
+      setSelectedPerson("none")
       setTags("")
 
       // Refresh the page to show new entry
@@ -180,7 +180,7 @@ export default function QuickAddCard({ householdId }: QuickAddCardProps) {
                   <SelectValue placeholder="Select a person" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No one specific</SelectItem>
+                  <SelectItem value="none">No one specific</SelectItem>
                   {persons.map((person) => (
                     <SelectItem key={person.id} value={person.id}>
                       {person.display_name}

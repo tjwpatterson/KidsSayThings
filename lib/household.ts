@@ -32,8 +32,8 @@ export async function getCurrentHousehold() {
     : null
 }
 
-export async function createHousehold(name: string) {
-  const supabase = await createClient()
+export async function createHousehold(name: string, supabaseClient?: any) {
+  const supabase = supabaseClient || await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

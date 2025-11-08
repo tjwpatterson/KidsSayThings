@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const household = await createHousehold(name.trim())
+    const household = await createHousehold(name.trim(), supabase)
 
     return NextResponse.json(household)
   } catch (error: any) {

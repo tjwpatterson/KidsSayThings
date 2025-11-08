@@ -49,7 +49,14 @@ export async function GET(
 
     // Generate signed URL (valid for 1 hour)
     const serviceClient = await createServiceRoleClient()
-    const fileName = book.pdf_url.split("/").slice(-2).join("/") // Get path from URL
+    
+    // Extract file path from the public URL
+    // URL format: https://[project].supabase.co/storage/v1/object/public/attachments/books/[id]/[timestamp].pdf
+    // We need: books/[id]/[timestamp].pdf
+    const urlParts = book.pdf_url.split("/")
+    const publicIndex = urlParts.findIndex((part) => part === "public")
+    const fileName = urlParts.slice(publicIndex + 2).join("/") // Get path after "public/attachments/"
+    
     const { data, error } = await serviceClient.storage
       .from("attachments")
       .createSignedUrl(fileName, 3600)

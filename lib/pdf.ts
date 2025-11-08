@@ -29,10 +29,10 @@ export async function generateBookPDF({
       const theme = book.theme
       const isClassic = theme === "classic"
 
-      // Create PDF document
+      // Create PDF document with larger margins for minimalist look
       const doc = new PDFDocument({
         size: [size.width, size.height],
-        margin: 36,
+        margin: 60, // Increased margins for more white space
       })
 
       const chunks: Buffer[] = []
@@ -53,33 +53,37 @@ export async function generateBookPDF({
         return format(date, "MMMM d, yyyy")
       }
 
-      // Render cover page
+      // Render cover page - minimalist design
       const renderCover = () => {
         doc.addPage()
 
-        // Background color based on cover style
+        // Minimalist cover - white or very light background
         if (book.cover_style === "gradient") {
-          // For gradient, we'll use a solid color (pdfkit doesn't support gradients easily)
-          doc.rect(0, 0, size.width, size.height).fill("#667eea")
+          doc.rect(0, 0, size.width, size.height).fill("#fafafa")
         } else if (book.cover_style === "solid") {
-          doc.rect(0, 0, size.width, size.height).fill("#667eea")
+          doc.rect(0, 0, size.width, size.height).fill("#000000")
         } else {
-          doc.rect(0, 0, size.width, size.height).fill("#f5f5f5")
+          // Linen - very light beige
+          doc.rect(0, 0, size.width, size.height).fill("#fafafa")
         }
 
-        // Title
+        const isDarkCover = book.cover_style === "solid"
+        const textColor = isDarkCover ? "#ffffff" : "#000000"
+
+        // Minimalist title - centered, large, clean
+        const titleY = size.height / 2 - 40
         doc
           .font(fonts.bold)
-          .fontSize(48)
-          .fillColor("#ffffff")
+          .fontSize(isClassic ? 42 : 48)
+          .fillColor(textColor)
           .text(book.title || "SaySo", {
             align: "center",
-            width: size.width - 72,
-            x: 36,
-            y: size.height / 2 - 60,
+            width: size.width - 120,
+            x: 60,
+            y: titleY,
           })
 
-        // Subtitle (year or date range)
+        // Subtle date/year below title
         const subtitle =
           new Date(book.date_start).getFullYear() ===
           new Date(book.date_end).getFullYear()
@@ -87,199 +91,201 @@ export async function generateBookPDF({
             : `${formatDate(book.date_start)} - ${formatDate(book.date_end)}`
 
         doc
-          .fontSize(24)
-          .fillColor("#ffffff")
-          .opacity(0.9)
+          .font(fonts.sansSerif)
+          .fontSize(14)
+          .fillColor(isDarkCover ? "#cccccc" : "#666666")
           .text(subtitle, {
             align: "center",
-            width: size.width - 72,
-            x: 36,
-            y: size.height / 2 + 20,
+            width: size.width - 120,
+            x: 60,
+            y: titleY + 70,
           })
 
-        // Footer
+        // Minimal footer - very subtle
         doc
-          .fontSize(14)
-          .opacity(0.8)
+          .fontSize(10)
+          .fillColor(isDarkCover ? "#888888" : "#999999")
+          .opacity(0.6)
           .text("A Collection of Memories", {
             align: "center",
-            width: size.width - 72,
-            x: 36,
-            y: size.height - 100,
+            width: size.width - 120,
+            x: 60,
+            y: size.height - 80,
           })
       }
 
-      // Render title page
+      // Render title page - clean and minimal
       const renderTitlePage = () => {
         doc.addPage()
 
-        doc.fillColor("#000000")
-
-        // Title
+        // Title - large, centered, minimal
+        const titleY = size.height / 2 - 80
         doc
           .font(fonts.bold)
-          .fontSize(36)
+          .fontSize(isClassic ? 36 : 40)
           .fillColor("#000000")
           .text(book.title || "SaySo", {
             align: "center",
-            width: size.width - 72,
-            x: 36,
-            y: size.height / 2 - 60,
+            width: size.width - 120,
+            x: 60,
+            y: titleY,
           })
 
-        // Date range
+        // Date range - subtle, smaller
         doc
           .font(fonts.sansSerif)
-          .fontSize(18)
+          .fontSize(12)
           .fillColor("#666666")
           .text(
             `${formatDate(book.date_start)} - ${formatDate(book.date_end)}`,
             {
               align: "center",
-              width: size.width - 72,
-              x: 36,
-              y: size.height / 2 + 20,
+              width: size.width - 120,
+              x: 60,
+              y: titleY + 60,
             }
           )
 
-        // Dedication
+        // Dedication - elegant, centered
         if (book.dedication) {
           doc
-            .fontSize(14)
+            .fontSize(13)
             .font(fonts.serif)
-            .fillColor("#666666")
+            .fillColor("#333333")
             .text(book.dedication, {
               align: "center",
-              width: size.width - 144,
-              x: 72,
-              y: size.height / 2 + 100,
+              width: size.width - 180,
+              x: 90,
+              y: titleY + 120,
+              lineGap: 4,
             })
         }
       }
 
-      // Render entry
+      // Render entry - minimalist quote style
       const renderEntry = (entry: Entry, isShort: boolean) => {
         doc.addPage()
         const person = entry.said_by ? persons[entry.said_by] : null
         const entryTags = tags[entry.id] || []
 
-        doc.fillColor("#000000")
-
         if (isShort && entry.text.length <= 180) {
-          // Pull quote style
-          const yStart = size.height / 2 - 100
+          // Minimalist pull quote - lots of white space
+          const centerY = size.height / 2
+          const textWidth = size.width - 180 // More margin for minimalism
 
-          // Large quote mark
-          doc
-            .font(fonts.bold)
-            .fontSize(120)
-            .fillColor("#cccccc")
-            .opacity(0.2)
-            .text('"', {
-              x: 36,
-              y: yStart - 40,
-            })
-
-          // Quote text
+          // Quote text - large, centered, elegant
+          const quoteFontSize = isClassic ? 22 : 26
           const textHeight = doc.heightOfString(entry.text, {
-            width: size.width - 72,
-            lineGap: 8,
+            width: textWidth,
+            lineGap: 10,
           })
+
           doc
             .font(isClassic ? fonts.serif : fonts.sansSerif)
-            .fontSize(isClassic ? 24 : 28)
+            .fontSize(quoteFontSize)
             .fillColor("#000000")
-            .opacity(1)
             .text(entry.text, {
-              x: 36,
-              y: yStart + 40,
-              width: size.width - 72,
-              lineGap: 8,
+              align: "center",
+              width: textWidth,
+              x: 90,
+              y: centerY - textHeight / 2 - 30,
+              lineGap: 10,
             })
 
-          // Author
+          // Author - subtle, below quote
           if (person) {
             doc
               .font(fonts.bold)
-              .fontSize(18)
-              .text(`— ${person.display_name}`, {
-                x: 36,
-                y: yStart + 40 + textHeight + 20,
-                width: size.width - 72,
-              })
-          }
-
-          // Date
-          doc
-            .fontSize(12)
-            .fillColor("#999999")
-            .text(formatDate(entry.entry_date), {
-              x: 36,
-              y: yStart + 40 + textHeight + (person ? 50 : 20),
-              width: size.width - 72,
-            })
-        } else {
-          // Body text style
-          let yPos = 60
-
-          // Author
-          if (person) {
-            doc
-              .font(fonts.bold)
-              .fontSize(14)
+              .fontSize(12)
               .fillColor("#666666")
               .text(person.display_name, {
-                x: 50,
-                y: yPos,
-                width: size.width - 100,
+                align: "center",
+                width: textWidth,
+                x: 90,
+                y: centerY + textHeight / 2 + 20,
               })
-            yPos += 25
           }
 
-          // Entry text
-          const entryTextHeight = doc.heightOfString(entry.text, {
-            width: size.width - 100,
-            lineGap: 6,
-          })
+          // Date - very subtle, small
           doc
-            .font(isClassic ? fonts.serif : fonts.sansSerif)
-            .fontSize(isClassic ? 14 : 16)
-            .fillColor("#000000")
-            .text(entry.text, {
-              x: 50,
-              y: yPos,
-              width: size.width - 100,
-              lineGap: 6,
+            .fontSize(9)
+            .fillColor("#999999")
+            .text(formatDate(entry.entry_date), {
+              align: "center",
+              width: textWidth,
+              x: 90,
+              y: centerY + textHeight / 2 + (person ? 40 : 20),
             })
+        } else {
+          // Body text style - clean, readable
+          let yPos = 80
 
-          yPos += entryTextHeight + 20
+          // Subtle divider line at top (optional, very light)
+          doc
+            .strokeColor("#e5e5e5")
+            .lineWidth(0.5)
+            .moveTo(60, yPos - 20)
+            .lineTo(size.width - 60, yPos - 20)
+            .stroke()
 
-          // Tags
-          if (entryTags.length > 0) {
+          // Author - small, subtle
+          if (person) {
             doc
+              .font(fonts.bold)
               .fontSize(11)
-              .fillColor("#999999")
-              .text(entryTags.map((tag) => `#${tag}`).join(" "), {
-                x: 50,
+              .fillColor("#666666")
+              .text(person.display_name, {
+                x: 60,
                 y: yPos,
-                width: size.width - 100,
+                width: size.width - 120,
               })
             yPos += 20
           }
 
-          // Date
+          // Entry text - clean, readable, good spacing
+          const entryTextHeight = doc.heightOfString(entry.text, {
+            width: size.width - 120,
+            lineGap: 8,
+          })
           doc
-            .fontSize(11)
+            .font(isClassic ? fonts.serif : fonts.sansSerif)
+            .fontSize(isClassic ? 13 : 15)
+            .fillColor("#000000")
+            .text(entry.text, {
+              x: 60,
+              y: yPos,
+              width: size.width - 120,
+              lineGap: 8,
+            })
+
+          yPos += entryTextHeight + 25
+
+          // Tags - very subtle
+          if (entryTags.length > 0) {
+            doc
+              .fontSize(9)
+              .fillColor("#999999")
+              .text(entryTags.map((tag) => tag).join(" • "), {
+                x: 60,
+                y: yPos,
+                width: size.width - 120,
+              })
+            yPos += 18
+          }
+
+          // Date - minimal, bottom
+          doc
+            .fontSize(9)
             .fillColor("#999999")
             .text(formatDate(entry.entry_date), {
-              x: 50,
+              x: 60,
               y: yPos,
-              width: size.width - 100,
+              width: size.width - 120,
             })
         }
       }
 
-      // Render month divider
+      // Render month divider - minimalist
       const renderMonthDivider = (monthKey: string) => {
         doc.addPage()
 
@@ -300,27 +306,28 @@ export async function generateBookPDF({
         ]
         const monthName = monthNames[parseInt(month) - 1]
 
-        const yPos = size.height / 2 - 40
+        // Minimalist divider - just text, centered
+        const yPos = size.height / 2
 
-          // Month title
+        // Month title - clean, minimal
         doc
           .font(fonts.bold)
-          .fontSize(32)
+          .fontSize(24)
           .fillColor("#000000")
           .text(`${monthName} ${year}`, {
             align: "center",
-            width: size.width - 72,
-            x: 36,
-            y: yPos,
+            width: size.width - 120,
+            x: 60,
+            y: yPos - 15,
           })
 
-        // Divider line
-        const lineY = yPos + 50
-        const lineWidth = 200
+        // Very subtle line - minimal
+        const lineY = yPos + 25
+        const lineWidth = 100
         const lineX = (size.width - lineWidth) / 2
         doc
-          .strokeColor("#dddddd")
-          .lineWidth(2)
+          .strokeColor("#e0e0e0")
+          .lineWidth(0.5)
           .moveTo(lineX, lineY)
           .lineTo(lineX + lineWidth, lineY)
           .stroke()

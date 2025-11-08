@@ -16,19 +16,38 @@ export async function generateBookPDF({
   tags,
 }: BookRenderOptions): Promise<Buffer> {
   // Configure Playwright for Vercel/serverless environment
-  // Try to find the installed Chromium browser
+  // For Vercel, we need to ensure browsers are installed and accessible
   let executablePath: string | undefined
   
   try {
-    // Get the path to the installed Chromium browser
+    // Try to get the Playwright Chromium path
     executablePath = chromium.executablePath()
+    
+    // Verify it exists
+    const fs = require('fs')
+    if (executablePath && !fs.existsSync(executablePath)) {
+      // If Playwright browser not found, try @sparticus/chromium as fallback
+      try {
+        const sparticusChromium = require('@sparticus/chromium')
+        if (sparticusChromium && sparticusChromium.executablePath) {
+          executablePath = sparticusChromium.executablePath()
+        }
+      } catch (e) {
+        // If that fails, try without explicit path
+        console.warn('Chromium not found, trying without explicit path')
+        executablePath = undefined
+      }
+    }
   } catch (error) {
-    // If not found, use environment variable or let Playwright use default
-    executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined
+    // If all else fails, try without explicit path
+    console.warn('Could not determine Chromium path, using default:', error)
+    executablePath = undefined
   }
 
+  // Launch browser with serverless-friendly options
   const browser = await chromium.launch({
-    executablePath,
+    executablePath: executablePath || undefined,
+    headless: true,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
@@ -38,6 +57,8 @@ export async function generateBookPDF({
       "--no-zygote",
       "--single-process",
       "--disable-gpu",
+      "--disable-software-rasterizer",
+      "--disable-extensions",
     ],
   })
   const page = await browser.newPage()

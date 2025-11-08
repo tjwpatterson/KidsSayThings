@@ -54,32 +54,42 @@ export async function GET(
     // URL format: https://[project].supabase.co/storage/v1/object/public/attachments/books/[id]/[timestamp].pdf
     // We need: books/[id]/[timestamp].pdf
     const urlParts = book.pdf_url.split("/")
-    const publicIndex = urlParts.findIndex((part) => part === "public")
+    const attachmentsIndex = urlParts.findIndex((part) => part === "attachments")
     
-    if (publicIndex === -1) {
-      // If it's not a public URL, try to use it directly or extract differently
-      // Some URLs might be signed URLs already
+    if (attachmentsIndex === -1) {
+      // If we can't find "attachments" in the URL, it might be a signed URL already
+      // or the URL format is different. Try using it directly.
+      console.warn("Could not extract file path from URL:", book.pdf_url)
       return NextResponse.json({ url: book.pdf_url })
     }
     
-    // Get path after "public/attachments/"
-    // publicIndex points to "public", so we want everything after "attachments"
-    const attachmentsIndex = urlParts.findIndex((part) => part === "attachments")
-    if (attachmentsIndex === -1 || attachmentsIndex < publicIndex) {
-      return NextResponse.json(
-        { error: "Invalid PDF URL format" },
-        { status: 400 }
-      )
-    }
-    
+    // Get path after "attachments/"
+    // Example: ["https:", "", "[project].supabase.co", "storage", "v1", "object", "public", "attachments", "books", "[id]", "[timestamp].pdf"]
+    // We want: "books/[id]/[timestamp].pdf"
     const fileName = urlParts.slice(attachmentsIndex + 1).join("/")
     
+    console.log("Extracted file path:", fileName)
+    console.log("Full PDF URL:", book.pdf_url)
+    
+    // Try to create a signed URL
     const { data, error } = await serviceClient.storage
       .from("attachments")
       .createSignedUrl(fileName, 3600)
 
     if (error) {
-      console.error("Error creating signed URL:", error)
+      console.error("Error creating signed URL:", {
+        error: error.message,
+        fileName,
+        pdfUrl: book.pdf_url,
+      })
+      
+      // If creating signed URL fails, try using the public URL directly
+      // This works if the bucket is public
+      if (book.pdf_url.includes("/public/")) {
+        console.log("Falling back to public URL")
+        return NextResponse.json({ url: book.pdf_url })
+      }
+      
       return NextResponse.json(
         { error: `Failed to generate download URL: ${error.message}` },
         { status: 500 }
@@ -87,6 +97,11 @@ export async function GET(
     }
 
     if (!data || !data.signedUrl) {
+      console.error("No signed URL returned from Supabase")
+      // Fallback to public URL if available
+      if (book.pdf_url.includes("/public/")) {
+        return NextResponse.json({ url: book.pdf_url })
+      }
       return NextResponse.json(
         { error: "Failed to generate download URL: No signed URL returned" },
         { status: 500 }

@@ -1,0 +1,17 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/reminders",
+      "schedule": "0 14 * * 1"
+    }
+  ],
+  "functions": {
+    "app/api/books/**/render/route.ts": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 300
+    }
+  }
+}
+
+
+

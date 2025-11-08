@@ -5,7 +5,15 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Download, Loader2, Play } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Download, Loader2, Play, Trash2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import Link from "next/link"
 import { format } from "date-fns"
@@ -18,6 +26,8 @@ interface BookDetailProps {
 
 export default function BookDetail({ book, householdId }: BookDetailProps) {
   const [rendering, setRendering] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
 
@@ -66,6 +76,37 @@ export default function BookDetail({ book, householdId }: BookDetailProps) {
         description: error.message || "Failed to download book",
         variant: "destructive",
       })
+    }
+  }
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/books/${book.id}`, {
+        method: "DELETE",
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || "Failed to delete book")
+      }
+
+      toast({
+        title: "Book deleted",
+        description: "The book has been permanently deleted.",
+      })
+
+      // Redirect to books list
+      router.push("/app/books")
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete book",
+        variant: "destructive",
+      })
+      setShowDeleteDialog(false)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -165,8 +206,54 @@ export default function BookDetail({ book, householdId }: BookDetailProps) {
               </Button>
             )}
           </div>
+
+          <div className="pt-4 border-t">
+            <Button
+              variant="destructive"
+              onClick={() => setShowDeleteDialog(true)}
+              className="w-full sm:w-auto"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Book
+            </Button>
+          </div>
         </CardContent>
       </Card>
+
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Book</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{book.title || "Untitled Book"}"? 
+              This action cannot be undone and will permanently delete the book and its PDF.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

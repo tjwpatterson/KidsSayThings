@@ -4,7 +4,15 @@ import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Download, Loader2 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Plus, Download, Loader2, Trash2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import Link from "next/link"
 import { format } from "date-fns"
@@ -17,6 +25,8 @@ interface BooksListProps {
 export default function BooksList({ householdId }: BooksListProps) {
   const [books, setBooks] = useState<Book[]>([])
   const [loading, setLoading] = useState(true)
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState<string | null>(null)
   const supabase = createClient()
   const { toast } = useToast()
 
@@ -58,6 +68,37 @@ export default function BooksList({ householdId }: BooksListProps) {
         description: error.message || "Failed to download book",
         variant: "destructive",
       })
+    }
+  }
+
+  const handleDelete = async (bookId: string) => {
+    setDeleting(bookId)
+    try {
+      const res = await fetch(`/api/books/${bookId}`, {
+        method: "DELETE",
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || "Failed to delete book")
+      }
+
+      toast({
+        title: "Book deleted",
+        description: "The book has been permanently deleted.",
+      })
+
+      // Remove from list and refresh
+      setBooks(books.filter((book) => book.id !== bookId))
+      setShowDeleteDialog(null)
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete book",
+        variant: "destructive",
+      })
+    } finally {
+      setDeleting(null)
     }
   }
 
@@ -135,6 +176,14 @@ export default function BooksList({ householdId }: BooksListProps) {
                         <Loader2 className="h-4 w-4 animate-spin" />
                       </Button>
                     )}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setShowDeleteDialog(book.id)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -142,6 +191,46 @@ export default function BooksList({ householdId }: BooksListProps) {
           ))}
         </div>
       )}
+
+      <Dialog
+        open={showDeleteDialog !== null}
+        onOpenChange={(open) => !open && setShowDeleteDialog(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Book</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this book? This action cannot be
+              undone and will permanently delete the book and its PDF.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(null)}
+              disabled={deleting !== null}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() =>
+                showDeleteDialog && handleDelete(showDeleteDialog)
+              }
+              disabled={deleting !== null}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

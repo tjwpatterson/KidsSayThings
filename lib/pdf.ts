@@ -1,4 +1,4 @@
-import { chromium } from "playwright"
+import PDFDocument from "pdfkit"
 import type { Book, Entry, Person } from "@/lib/types"
 import { format } from "date-fns"
 
@@ -15,295 +15,347 @@ export async function generateBookPDF({
   persons,
   tags,
 }: BookRenderOptions): Promise<Buffer> {
-  // Configure Playwright for Vercel/serverless environment
-  // For Vercel, we need to ensure browsers are installed and accessible
-  let executablePath: string | undefined
-  
-  try {
-    // Try to get the Playwright Chromium path
-    executablePath = chromium.executablePath()
-    
-    // Verify it exists
-    const fs = require('fs')
-    if (executablePath && !fs.existsSync(executablePath)) {
-      // If Playwright browser not found, try @sparticus/chromium as fallback
-      try {
-        const sparticusChromium = require('@sparticus/chromium')
-        if (sparticusChromium && sparticusChromium.executablePath) {
-          executablePath = sparticusChromium.executablePath()
-        }
-      } catch (e) {
-        // If that fails, try without explicit path
-        console.warn('Chromium not found, trying without explicit path')
-        executablePath = undefined
+  return new Promise((resolve, reject) => {
+    try {
+      // Page dimensions in points (1 inch = 72 points)
+      // 6x9 = 6" x 9" = 432pt x 648pt
+      // 8x10 = 8" x 10" = 576pt x 720pt
+      const dimensions = {
+        "6x9": { width: 432, height: 648 },
+        "8x10": { width: 576, height: 720 },
       }
+
+      const size = dimensions[book.size]
+      const theme = book.theme
+      const isClassic = theme === "classic"
+
+      // Create PDF document
+      const doc = new PDFDocument({
+        size: [size.width, size.height],
+        margin: 36,
+      })
+
+      const chunks: Buffer[] = []
+      doc.on("data", (chunk) => chunks.push(chunk))
+      doc.on("end", () => resolve(Buffer.concat(chunks)))
+      doc.on("error", reject)
+
+      // Font configuration
+      const fonts = {
+        serif: "Helvetica", // Classic theme
+        sansSerif: "Helvetica", // Playful theme
+        bold: "Helvetica-Bold",
+      }
+
+      // Helper to format dates
+      const formatDate = (dateString: string): string => {
+        const date = new Date(dateString)
+        return format(date, "MMMM d, yyyy")
+      }
+
+      // Render cover page
+      const renderCover = () => {
+        doc.addPage()
+
+        // Background color based on cover style
+        if (book.cover_style === "gradient") {
+          // For gradient, we'll use a solid color (pdfkit doesn't support gradients easily)
+          doc.rect(0, 0, size.width, size.height).fill("#667eea")
+        } else if (book.cover_style === "solid") {
+          doc.rect(0, 0, size.width, size.height).fill("#667eea")
+        } else {
+          doc.rect(0, 0, size.width, size.height).fill("#f5f5f5")
+        }
+
+        // Title
+        doc
+          .font(fonts.bold)
+          .fontSize(48)
+          .fillColor("#ffffff")
+          .text(book.title || "SaySo", {
+            align: "center",
+            width: size.width - 72,
+            x: 36,
+            y: size.height / 2 - 60,
+          })
+
+        // Subtitle (year or date range)
+        const subtitle =
+          new Date(book.date_start).getFullYear() ===
+          new Date(book.date_end).getFullYear()
+            ? String(new Date(book.date_start).getFullYear())
+            : `${formatDate(book.date_start)} - ${formatDate(book.date_end)}`
+
+        doc
+          .fontSize(24)
+          .fillColor("#ffffff")
+          .opacity(0.9)
+          .text(subtitle, {
+            align: "center",
+            width: size.width - 72,
+            x: 36,
+            y: size.height / 2 + 20,
+          })
+
+        // Footer
+        doc
+          .fontSize(14)
+          .opacity(0.8)
+          .text("A Collection of Memories", {
+            align: "center",
+            width: size.width - 72,
+            x: 36,
+            y: size.height - 100,
+          })
+      }
+
+      // Render title page
+      const renderTitlePage = () => {
+        doc.addPage()
+
+        doc.fillColor("#000000")
+
+        // Title
+        doc
+          .font(fonts.bold)
+          .fontSize(36)
+          .fillColor("#000000")
+          .text(book.title || "SaySo", {
+            align: "center",
+            width: size.width - 72,
+            x: 36,
+            y: size.height / 2 - 60,
+          })
+
+        // Date range
+        doc
+          .font(fonts.sansSerif)
+          .fontSize(18)
+          .fillColor("#666666")
+          .text(
+            `${formatDate(book.date_start)} - ${formatDate(book.date_end)}`,
+            {
+              align: "center",
+              width: size.width - 72,
+              x: 36,
+              y: size.height / 2 + 20,
+            }
+          )
+
+        // Dedication
+        if (book.dedication) {
+          doc
+            .fontSize(14)
+            .font(fonts.serif)
+            .fillColor("#666666")
+            .text(book.dedication, {
+              align: "center",
+              width: size.width - 144,
+              x: 72,
+              y: size.height / 2 + 100,
+            })
+        }
+      }
+
+      // Render entry
+      const renderEntry = (entry: Entry, isShort: boolean) => {
+        doc.addPage()
+        const person = entry.said_by ? persons[entry.said_by] : null
+        const entryTags = tags[entry.id] || []
+
+        doc.fillColor("#000000")
+
+        if (isShort && entry.text.length <= 180) {
+          // Pull quote style
+          const yStart = size.height / 2 - 100
+
+          // Large quote mark
+          doc
+            .font(fonts.bold)
+            .fontSize(120)
+            .fillColor("#cccccc")
+            .opacity(0.2)
+            .text('"', {
+              x: 36,
+              y: yStart - 40,
+            })
+
+          // Quote text
+          const textHeight = doc.heightOfString(entry.text, {
+            width: size.width - 72,
+            lineGap: 8,
+          })
+          doc
+            .font(isClassic ? fonts.serif : fonts.sansSerif)
+            .fontSize(isClassic ? 24 : 28)
+            .fillColor("#000000")
+            .opacity(1)
+            .text(entry.text, {
+              x: 36,
+              y: yStart + 40,
+              width: size.width - 72,
+              lineGap: 8,
+            })
+
+          // Author
+          if (person) {
+            doc
+              .font(fonts.bold)
+              .fontSize(18)
+              .text(`— ${person.display_name}`, {
+                x: 36,
+                y: yStart + 40 + textHeight + 20,
+                width: size.width - 72,
+              })
+          }
+
+          // Date
+          doc
+            .fontSize(12)
+            .fillColor("#999999")
+            .text(formatDate(entry.entry_date), {
+              x: 36,
+              y: yStart + 40 + textHeight + (person ? 50 : 20),
+              width: size.width - 72,
+            })
+        } else {
+          // Body text style
+          let yPos = 60
+
+          // Author
+          if (person) {
+            doc
+              .font(fonts.bold)
+              .fontSize(14)
+              .fillColor("#666666")
+              .text(person.display_name, {
+                x: 50,
+                y: yPos,
+                width: size.width - 100,
+              })
+            yPos += 25
+          }
+
+          // Entry text
+          const entryTextHeight = doc.heightOfString(entry.text, {
+            width: size.width - 100,
+            lineGap: 6,
+          })
+          doc
+            .font(isClassic ? fonts.serif : fonts.sansSerif)
+            .fontSize(isClassic ? 14 : 16)
+            .fillColor("#000000")
+            .text(entry.text, {
+              x: 50,
+              y: yPos,
+              width: size.width - 100,
+              lineGap: 6,
+            })
+
+          yPos += entryTextHeight + 20
+
+          // Tags
+          if (entryTags.length > 0) {
+            doc
+              .fontSize(11)
+              .fillColor("#999999")
+              .text(entryTags.map((tag) => `#${tag}`).join(" "), {
+                x: 50,
+                y: yPos,
+                width: size.width - 100,
+              })
+            yPos += 20
+          }
+
+          // Date
+          doc
+            .fontSize(11)
+            .fillColor("#999999")
+            .text(formatDate(entry.entry_date), {
+              x: 50,
+              y: yPos,
+              width: size.width - 100,
+            })
+        }
+      }
+
+      // Render month divider
+      const renderMonthDivider = (monthKey: string) => {
+        doc.addPage()
+
+        const [year, month] = monthKey.split("-")
+        const monthNames = [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ]
+        const monthName = monthNames[parseInt(month) - 1]
+
+        const yPos = size.height / 2 - 40
+
+          // Month title
+        doc
+          .font(fonts.bold)
+          .fontSize(32)
+          .fillColor("#000000")
+          .text(`${monthName} ${year}`, {
+            align: "center",
+            width: size.width - 72,
+            x: 36,
+            y: yPos,
+          })
+
+        // Divider line
+        const lineY = yPos + 50
+        const lineWidth = 200
+        const lineX = (size.width - lineWidth) / 2
+        doc
+          .strokeColor("#dddddd")
+          .lineWidth(2)
+          .moveTo(lineX, lineY)
+          .lineTo(lineX + lineWidth, lineY)
+          .stroke()
+      }
+
+      // Group entries by month
+      const entriesByMonth: Record<string, typeof entries> = {}
+      entries.forEach((entry) => {
+        const date = new Date(entry.entry_date)
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
+        if (!entriesByMonth[monthKey]) {
+          entriesByMonth[monthKey] = []
+        }
+        entriesByMonth[monthKey].push(entry)
+      })
+
+      // Render pages
+      renderCover()
+      renderTitlePage()
+
+      // Sort months chronologically and render
+      const sortedMonths = Object.keys(entriesByMonth).sort()
+      sortedMonths.forEach((monthKey) => {
+        renderMonthDivider(monthKey)
+        const monthEntries = entriesByMonth[monthKey]
+        monthEntries.forEach((entry) => {
+          const isShort = entry.text.length <= 180
+          renderEntry(entry, isShort)
+        })
+      })
+
+      // Finalize PDF
+      doc.end()
+    } catch (error) {
+      reject(error)
     }
-  } catch (error) {
-    // If all else fails, try without explicit path
-    console.warn('Could not determine Chromium path, using default:', error)
-    executablePath = undefined
-  }
-
-  // Launch browser with serverless-friendly options
-  const browser = await chromium.launch({
-    executablePath: executablePath || undefined,
-    headless: true,
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-accelerated-2d-canvas",
-      "--no-first-run",
-      "--no-zygote",
-      "--single-process",
-      "--disable-gpu",
-      "--disable-software-rasterizer",
-      "--disable-extensions",
-    ],
   })
-  const page = await browser.newPage()
-
-  // Set page size based on book size (in inches, converted to points)
-  // 6x9 = 6" x 9" = 432pt x 648pt
-  // 8x10 = 8" x 10" = 576pt x 720pt
-  // Add 0.125" bleed on each side = 0.25" total = 18pt
-  const dimensions = {
-    "6x9": { width: 450, height: 666 }, // 432 + 18 bleed
-    "8x10": { width: 594, height: 738 }, // 576 + 18 bleed
-  }
-
-  const size = dimensions[book.size]
-
-  const html = generateBookHTML({
-    book,
-    entries,
-    persons,
-    tags,
-    size,
-  })
-
-  await page.setContent(html, { waitUntil: "networkidle" })
-
-  const pdf = await page.pdf({
-    width: `${size.width}pt`,
-    height: `${size.height}pt`,
-    printBackground: true,
-    preferCSSPageSize: false,
-    margin: {
-      top: "36pt", // 0.5" safe margin
-      right: "36pt",
-      bottom: "36pt",
-      left: "36pt",
-    },
-  })
-
-  await browser.close()
-
-  return pdf
 }
-
-function generateBookHTML({
-  book,
-  entries,
-  persons,
-  tags,
-  size,
-}: BookRenderOptions & { size: { width: number; height: number } }): string {
-  const theme = book.theme
-  const isClassic = theme === "classic"
-
-  // Group entries by month
-  const entriesByMonth: Record<string, typeof entries> = {}
-  entries.forEach((entry) => {
-    const date = new Date(entry.entry_date)
-    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
-    if (!entriesByMonth[monthKey]) {
-      entriesByMonth[monthKey] = []
-    }
-    entriesByMonth[monthKey].push(entry)
-  })
-
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ]
-
-  let pageNumber = 1
-
-  const renderCover = () => {
-    const coverStyle =
-      book.cover_style === "gradient"
-        ? "background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"
-        : book.cover_style === "solid"
-        ? "background: #667eea;"
-        : "background: #f5f5f5;"
-
-    return `
-      <div class="page cover-page" style="${coverStyle} color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 80pt;">
-        <h1 class="cover-title" style="font-size: 48pt; font-weight: bold; margin-bottom: 20pt; ${isClassic ? 'font-family: "Playfair Display", serif;' : 'font-family: "Inter", sans-serif;'}">
-          ${book.title || "SaySo"}
-        </h1>
-        <p class="cover-subtitle" style="font-size: 24pt; margin-bottom: 40pt; opacity: 0.9;">
-          ${new Date(book.date_start).getFullYear() === new Date(book.date_end).getFullYear()
-            ? new Date(book.date_start).getFullYear()
-            : `${formatDate(book.date_start)} - ${formatDate(book.date_end)}`}
-        </p>
-        <p class="cover-footer" style="font-size: 14pt; opacity: 0.8; margin-top: auto;">
-          A Collection of Memories
-        </p>
-      </div>
-    `
-  }
-
-  const renderTitlePage = () => {
-    return `
-      <div class="page title-page" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 80pt;">
-        <h1 class="title-page-title" style="font-size: 36pt; font-weight: bold; margin-bottom: 20pt; ${isClassic ? 'font-family: "Playfair Display", serif;' : 'font-family: "Inter", sans-serif;'}">
-          ${book.title || "SaySo"}
-        </h1>
-        <p class="title-page-date" style="font-size: 18pt; margin-bottom: 40pt; color: #666;">
-          ${formatDate(book.date_start)} - ${formatDate(book.date_end)}
-        </p>
-        ${book.dedication ? `<p class="dedication" style="font-size: 14pt; font-style: italic; color: #666; max-width: 400pt; line-height: 1.6;">${escapeHtml(book.dedication)}</p>` : ""}
-      </div>
-    `
-  }
-
-  const renderEntry = (entry: Entry, isShort: boolean) => {
-    const person = entry.said_by ? persons[entry.said_by] : null
-    const entryTags = tags[entry.id] || []
-
-    if (isShort && entry.text.length <= 180) {
-      // Pull quote style
-      return `
-        <div class="entry-page pull-quote" style="display: flex; flex-direction: column; justify-content: center; padding: 60pt;">
-          <div class="quote-mark" style="font-size: 120pt; line-height: 1; opacity: 0.2; ${isClassic ? 'font-family: "Playfair Display", serif;' : 'font-family: "Inter", sans-serif;'}">
-            "
-          </div>
-          <p class="quote-text" style="font-size: ${isClassic ? "24pt" : "28pt"}; line-height: 1.6; margin-top: -40pt; margin-bottom: 30pt; ${isClassic ? 'font-family: "Georgia", serif;' : 'font-family: "Inter", sans-serif;'}">
-            ${escapeHtml(entry.text)}
-          </p>
-          ${person ? `<p class="quote-author" style="font-size: 18pt; font-weight: 600; ${isClassic ? 'font-family: "Playfair Display", serif;' : 'font-family: "Inter", sans-serif;'}">— ${escapeHtml(person.display_name)}</p>` : ""}
-          <p class="quote-date" style="font-size: 12pt; color: #999; margin-top: 10pt;">
-            ${formatDate(entry.entry_date)}
-          </p>
-        </div>
-      `
-    } else {
-      // Body text style
-      return `
-        <div class="entry-page body-text" style="padding: 60pt 50pt;">
-          ${person ? `<p class="entry-author" style="font-size: 14pt; font-weight: 600; margin-bottom: 15pt; color: #666;">${escapeHtml(person.display_name)}</p>` : ""}
-          <p class="entry-text" style="font-size: ${isClassic ? "14pt" : "16pt"}; line-height: 1.8; margin-bottom: 20pt; ${isClassic ? 'font-family: "Georgia", serif;' : 'font-family: "Inter", sans-serif;'}">
-            ${escapeHtml(entry.text)}
-          </p>
-          ${entryTags.length > 0 ? `<div class="entry-tags" style="margin-top: 15pt; font-size: 11pt; color: #999;">${entryTags.map(tag => `#${escapeHtml(tag)}`).join(" ")}</div>` : ""}
-          <p class="entry-date" style="font-size: 11pt; color: #999; margin-top: 15pt;">
-            ${formatDate(entry.entry_date)}
-          </p>
-        </div>
-      `
-    }
-  }
-
-  const renderMonthDivider = (monthKey: string) => {
-    const [year, month] = monthKey.split("-")
-    const monthName = monthNames[parseInt(month) - 1]
-    return `
-      <div class="page month-divider" style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 60pt;">
-        <h2 class="month-title" style="font-size: 32pt; font-weight: 600; margin-bottom: 15pt; ${isClassic ? 'font-family: "Playfair Display", serif;' : 'font-family: "Inter", sans-serif;'}">
-          ${monthName} ${year}
-        </h2>
-        <div class="divider-line" style="width: 200pt; height: 2pt; background: #ddd; margin: 20pt 0;"></div>
-      </div>
-    `
-  }
-
-  let html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-      <style>
-        @page {
-          size: ${size.width}pt ${size.height}pt;
-          margin: 0;
-        }
-        .page {
-          width: ${size.width}pt;
-          height: ${size.height}pt;
-          page-break-after: always;
-          box-sizing: border-box;
-        }
-        .page:last-child {
-          page-break-after: auto;
-        }
-        .page-number {
-          position: absolute;
-          bottom: 30pt;
-          left: 50%;
-          transform: translateX(-50%);
-          font-size: 10pt;
-          color: #999;
-          ${isClassic ? 'font-family: "Playfair Display", serif;' : 'font-family: "Inter", sans-serif;'}
-        }
-        body {
-          margin: 0;
-          padding: 0;
-          ${isClassic ? 'font-family: "Georgia", serif;' : 'font-family: "Inter", sans-serif;'}
-        }
-      </style>
-    </head>
-    <body>
-      ${renderCover()}
-      ${renderTitlePage()}
-  `
-
-  // Sort months chronologically
-  const sortedMonths = Object.keys(entriesByMonth).sort()
-
-  sortedMonths.forEach((monthKey) => {
-    html += renderMonthDivider(monthKey)
-    const monthEntries = entriesByMonth[monthKey]
-    monthEntries.forEach((entry) => {
-      const isShort = entry.text.length <= 180
-      html += renderEntry(entry, isShort)
-      pageNumber++
-    })
-  })
-
-  html += `
-    </body>
-    </html>
-  `
-
-  return html
-}
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString)
-  return format(date, "MMMM d, yyyy")
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;")
-}
-

@@ -17,6 +17,49 @@ interface PeopleListProps {
   householdId: string
 }
 
+// Generate a consistent color for each person based on their ID
+function getPersonColor(personId: string, index: number): string {
+  // Create an array of brand color shades
+  // Using HSL values that match the brand palette
+  const colorPalette = [
+    // Primary orange shades
+    "hsl(14, 90%, 95%)",   // Very light orange (accent)
+    "hsl(14, 85%, 92%)",   // Light orange
+    "hsl(14, 80%, 88%)",   // Lighter orange
+    "hsl(14, 75%, 85%)",   // Light-medium orange
+    "hsl(14, 70%, 82%)",   // Medium-light orange
+    
+    // Secondary yellow/cream shades
+    "hsl(45, 93%, 94%)",   // Light cream (secondary)
+    "hsl(45, 88%, 91%)",   // Cream
+    "hsl(45, 83%, 88%)",   // Light beige
+    "hsl(45, 78%, 85%)",   // Beige
+    
+    // Warm peach/coral variations
+    "hsl(20, 85%, 92%)",   // Light peach
+    "hsl(20, 80%, 89%)",   // Peach
+    "hsl(20, 75%, 86%)",   // Medium peach
+    
+    // Soft orange variations
+    "hsl(18, 82%, 90%)",   // Soft orange
+    "hsl(18, 77%, 87%)",   // Medium soft orange
+    "hsl(18, 72%, 84%)",   // Deeper soft orange
+    
+    // Warm yellow variations
+    "hsl(40, 90%, 93%)",   // Warm yellow
+    "hsl(40, 85%, 90%)",   // Light warm yellow
+    "hsl(40, 80%, 87%)",   // Medium warm yellow
+  ]
+
+  // Use a combination of index and person ID hash for consistent color assignment
+  const hash = personId.split('').reduce((acc, char) => {
+    return char.charCodeAt(0) + ((acc << 5) - acc)
+  }, 0)
+  
+  const colorIndex = Math.abs(hash + index) % colorPalette.length
+  return colorPalette[colorIndex]
+}
+
 export default function PeopleList({ householdId }: PeopleListProps) {
   const [persons, setPersons] = useState<Person[]>([])
   const [loading, setLoading] = useState(true)
@@ -134,30 +177,36 @@ export default function PeopleList({ householdId }: PeopleListProps) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {persons.map((person) => (
-            <Link key={person.id} href={`/app/people/${person.id}`}>
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={person.avatar_url || undefined} />
-                      <AvatarFallback>
-                        {person.display_name.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{person.display_name}</h3>
-                      {person.birthdate && (
-                        <p className="text-sm text-muted-foreground">
-                          Born {new Date(person.birthdate).getFullYear()}
-                        </p>
-                      )}
+          {persons.map((person, index) => {
+            const tileColor = getPersonColor(person.id, index)
+            return (
+              <Link key={person.id} href={`/app/people/${person.id}`}>
+                <Card 
+                  className="hover:shadow-md transition-shadow cursor-pointer border-0"
+                  style={{ backgroundColor: tileColor }}
+                >
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-12 w-12 border-2 border-white/50">
+                        <AvatarImage src={person.avatar_url || undefined} />
+                        <AvatarFallback className="bg-white/30 text-foreground">
+                          {person.display_name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{person.display_name}</h3>
+                        {person.birthdate && (
+                          <p className="text-sm text-muted-foreground/80">
+                            Born {new Date(person.birthdate).getFullYear()}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+                  </CardContent>
+                </Card>
+              </Link>
+            )
+          })}
         </div>
       )}
     </div>

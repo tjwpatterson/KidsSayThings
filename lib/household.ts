@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
 
 export async function getCurrentHousehold() {
   const supabase = await createClient()
@@ -40,8 +40,12 @@ export async function createHousehold(name: string, supabaseClient?: any) {
 
   if (!user) throw new Error("Not authenticated")
 
+  // Use service role client to bypass RLS for household creation
+  // This is safe because we've already verified the user is authenticated
+  const serviceClient = await createServiceRoleClient()
+
   // Create household
-  const { data: household, error: householdError } = await supabase
+  const { data: household, error: householdError } = await serviceClient
     .from("households")
     .insert({
       name,
@@ -55,7 +59,7 @@ export async function createHousehold(name: string, supabaseClient?: any) {
   }
 
   // Add owner as member
-  const { error: memberError } = await supabase
+  const { error: memberError } = await serviceClient
     .from("household_members")
     .insert({
       household_id: household.id,

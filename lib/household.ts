@@ -42,6 +42,10 @@ export async function createHousehold(name: string, supabaseClient?: any) {
 
   // Use service role client to bypass RLS for household creation
   // This is safe because we've already verified the user is authenticated
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured")
+  }
+  
   const serviceClient = await createServiceRoleClient()
 
   // Create household

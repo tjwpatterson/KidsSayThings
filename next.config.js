@@ -8,7 +8,7 @@ const nextConfig = {
       },
     ],
   },
-  // Ensure PDF routes use Node.js runtime (for Playwright)
+  // Ensure PDF routes use Node.js runtime (for pdfkit)
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',

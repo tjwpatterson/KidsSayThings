@@ -77,11 +77,9 @@ export async function generateBookPDF({
           .font(fonts.bold)
           .fontSize(isClassic ? 42 : 48)
           .fillColor(textColor)
-          .text(book.title || "SaySo", {
+          .text(book.title || "SaySo", 60, titleY, {
             align: "center",
             width: size.width - 120,
-            x: 60,
-            y: titleY,
           })
 
         // Subtle date/year below title
@@ -95,11 +93,9 @@ export async function generateBookPDF({
           .font(fonts.sansSerif)
           .fontSize(14)
           .fillColor(isDarkCover ? "#cccccc" : "#666666")
-          .text(subtitle, {
+          .text(subtitle, 60, titleY + 70, {
             align: "center",
             width: size.width - 120,
-            x: 60,
-            y: titleY + 70,
           })
 
         // Minimal footer - very subtle
@@ -107,11 +103,9 @@ export async function generateBookPDF({
           .fontSize(10)
           .fillColor(isDarkCover ? "#888888" : "#999999")
           .opacity(0.6)
-          .text("A Collection of Memories", {
+          .text("A Collection of Memories", 60, size.height - 80, {
             align: "center",
             width: size.width - 120,
-            x: 60,
-            y: size.height - 80,
           })
       }
 
@@ -125,11 +119,9 @@ export async function generateBookPDF({
           .font(fonts.bold)
           .fontSize(isClassic ? 36 : 40)
           .fillColor("#000000")
-          .text(book.title || "SaySo", {
+          .text(book.title || "SaySo", 60, titleY, {
             align: "center",
             width: size.width - 120,
-            x: 60,
-            y: titleY,
           })
 
         // Date range - subtle, smaller
@@ -139,11 +131,11 @@ export async function generateBookPDF({
           .fillColor("#666666")
           .text(
             `${formatDate(book.date_start)} - ${formatDate(book.date_end)}`,
+            60,
+            titleY + 60,
             {
               align: "center",
               width: size.width - 120,
-              x: 60,
-              y: titleY + 60,
             }
           )
 
@@ -153,11 +145,9 @@ export async function generateBookPDF({
             .fontSize(13)
             .font(fonts.serif)
             .fillColor("#333333")
-            .text(book.dedication, {
+            .text(book.dedication, 90, titleY + 120, {
               align: "center",
               width: size.width - 180,
-              x: 90,
-              y: titleY + 120,
               lineGap: 4,
             })
         }
@@ -185,11 +175,9 @@ export async function generateBookPDF({
             .font(isClassic ? fonts.serif : fonts.sansSerif)
             .fontSize(quoteFontSize)
             .fillColor("#000000")
-            .text(entry.text, {
+            .text(entry.text, 90, centerY - textHeight / 2 - 30, {
               align: "center",
               width: textWidth,
-              x: 90,
-              y: centerY - textHeight / 2 - 30,
               lineGap: 10,
             })
 
@@ -199,11 +187,9 @@ export async function generateBookPDF({
               .font(fonts.bold)
               .fontSize(12)
               .fillColor("#666666")
-              .text(person.display_name, {
+              .text(person.display_name, 90, centerY + textHeight / 2 + 20, {
                 align: "center",
                 width: textWidth,
-                x: 90,
-                y: centerY + textHeight / 2 + 20,
               })
           }
 
@@ -211,11 +197,9 @@ export async function generateBookPDF({
           doc
             .fontSize(9)
             .fillColor("#999999")
-            .text(formatDate(entry.entry_date), {
+            .text(formatDate(entry.entry_date), 90, centerY + textHeight / 2 + (person ? 40 : 20), {
               align: "center",
               width: textWidth,
-              x: 90,
-              y: centerY + textHeight / 2 + (person ? 40 : 20),
             })
         } else {
           // Body text style - clean, readable
@@ -235,9 +219,7 @@ export async function generateBookPDF({
               .font(fonts.bold)
               .fontSize(11)
               .fillColor("#666666")
-              .text(person.display_name, {
-                x: 60,
-                y: yPos,
+              .text(person.display_name, 60, yPos, {
                 width: size.width - 120,
               })
             yPos += 20
@@ -252,9 +234,7 @@ export async function generateBookPDF({
             .font(isClassic ? fonts.serif : fonts.sansSerif)
             .fontSize(isClassic ? 13 : 15)
             .fillColor("#000000")
-            .text(entry.text, {
-              x: 60,
-              y: yPos,
+            .text(entry.text, 60, yPos, {
               width: size.width - 120,
               lineGap: 8,
             })
@@ -266,9 +246,7 @@ export async function generateBookPDF({
             doc
               .fontSize(9)
               .fillColor("#999999")
-              .text(entryTags.map((tag) => tag).join(" • "), {
-                x: 60,
-                y: yPos,
+              .text(entryTags.map((tag) => tag).join(" • "), 60, yPos, {
                 width: size.width - 120,
               })
             yPos += 18
@@ -278,9 +256,7 @@ export async function generateBookPDF({
           doc
             .fontSize(9)
             .fillColor("#999999")
-            .text(formatDate(entry.entry_date), {
-              x: 60,
-              y: yPos,
+            .text(formatDate(entry.entry_date), 60, yPos, {
               width: size.width - 120,
             })
         }
@@ -315,11 +291,9 @@ export async function generateBookPDF({
           .font(fonts.bold)
           .fontSize(24)
           .fillColor("#000000")
-          .text(`${monthName} ${year}`, {
+          .text(`${monthName} ${year}`, 60, yPos - 15, {
             align: "center",
             width: size.width - 120,
-            x: 60,
-            y: yPos - 15,
           })
 
         // Very subtle line - minimal

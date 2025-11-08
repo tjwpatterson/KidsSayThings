@@ -15,7 +15,31 @@ export async function generateBookPDF({
   persons,
   tags,
 }: BookRenderOptions): Promise<Buffer> {
-  const browser = await chromium.launch()
+  // Configure Playwright for Vercel/serverless environment
+  // Try to find the installed Chromium browser
+  let executablePath: string | undefined
+  
+  try {
+    // Get the path to the installed Chromium browser
+    executablePath = chromium.executablePath()
+  } catch (error) {
+    // If not found, use environment variable or let Playwright use default
+    executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined
+  }
+
+  const browser = await chromium.launch({
+    executablePath,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-accelerated-2d-canvas",
+      "--no-first-run",
+      "--no-zygote",
+      "--single-process",
+      "--disable-gpu",
+    ],
+  })
   const page = await browser.newPage()
 
   // Set page size based on book size (in inches, converted to points)

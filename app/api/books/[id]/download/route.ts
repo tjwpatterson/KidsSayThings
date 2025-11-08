@@ -55,15 +55,40 @@ export async function GET(
     // We need: books/[id]/[timestamp].pdf
     const urlParts = book.pdf_url.split("/")
     const publicIndex = urlParts.findIndex((part) => part === "public")
-    const fileName = urlParts.slice(publicIndex + 2).join("/") // Get path after "public/attachments/"
+    
+    if (publicIndex === -1) {
+      // If it's not a public URL, try to use it directly or extract differently
+      // Some URLs might be signed URLs already
+      return NextResponse.json({ url: book.pdf_url })
+    }
+    
+    // Get path after "public/attachments/"
+    // publicIndex points to "public", so we want everything after "attachments"
+    const attachmentsIndex = urlParts.findIndex((part) => part === "attachments")
+    if (attachmentsIndex === -1 || attachmentsIndex < publicIndex) {
+      return NextResponse.json(
+        { error: "Invalid PDF URL format" },
+        { status: 400 }
+      )
+    }
+    
+    const fileName = urlParts.slice(attachmentsIndex + 1).join("/")
     
     const { data, error } = await serviceClient.storage
       .from("attachments")
       .createSignedUrl(fileName, 3600)
 
-    if (error || !data) {
+    if (error) {
+      console.error("Error creating signed URL:", error)
       return NextResponse.json(
-        { error: "Failed to generate download URL" },
+        { error: `Failed to generate download URL: ${error.message}` },
+        { status: 500 }
+      )
+    }
+
+    if (!data || !data.signedUrl) {
+      return NextResponse.json(
+        { error: "Failed to generate download URL: No signed URL returned" },
         { status: 500 }
       )
     }

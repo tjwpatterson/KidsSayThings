@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,6 +14,19 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
   const supabase = createClient()
+  const searchParams = useSearchParams()
+
+  // Show error message from URL if present (e.g., from auth callback)
+  useEffect(() => {
+    const error = searchParams.get("error")
+    if (error) {
+      toast({
+        title: "Authentication Error",
+        description: decodeURIComponent(error),
+        variant: "destructive",
+      })
+    }
+  }, [searchParams, toast])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

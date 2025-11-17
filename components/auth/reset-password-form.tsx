@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,12 +8,27 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import Link from "next/link"
 
-export default function ResetPasswordForm() {
+interface ResetPasswordFormProps {
+  error?: string
+}
+
+export default function ResetPasswordForm({ error }: ResetPasswordFormProps) {
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const { toast } = useToast()
   const supabase = createClient()
+
+  // Show error from URL if present
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error",
+        description: decodeURIComponent(error),
+        variant: "destructive",
+      })
+    }
+  }, [error, toast])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

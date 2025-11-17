@@ -2,7 +2,12 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import ResetPasswordForm from "@/components/auth/reset-password-form"
 
-export default async function ResetPasswordPage() {
+export default async function ResetPasswordPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>
+}) {
+  const params = await searchParams
   const supabase = await createClient()
   const {
     data: { user },
@@ -22,7 +27,7 @@ export default async function ResetPasswordPage() {
             Enter your email to receive a password reset link
           </p>
         </div>
-        <ResetPasswordForm />
+        <ResetPasswordForm error={params.error} />
       </div>
     </div>
   )

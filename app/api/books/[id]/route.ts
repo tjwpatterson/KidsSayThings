@@ -110,7 +110,7 @@ export async function DELETE(
         
         // Extract file path from the public URL
         const urlParts = book.pdf_url.split("/")
-        const attachmentsIndex = urlParts.findIndex((part) => part === "attachments")
+        const attachmentsIndex = urlParts.findIndex((part: string) => part === "attachments")
         
         if (attachmentsIndex !== -1) {
           const fileName = urlParts.slice(attachmentsIndex + 1).join("/")

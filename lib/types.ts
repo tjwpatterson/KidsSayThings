@@ -5,6 +5,8 @@ export type BookSize = "6x9" | "8x10"
 export type BookTheme = "classic" | "playful"
 export type BookCoverStyle = "linen" | "solid" | "gradient"
 export type BookStatus = "draft" | "rendering" | "ready" | "error"
+export type BookDesignMode = "auto" | "manual" | null
+export type PageLayout = "A" | "B" | "C"
 export type ReminderChannel = "email" | "sms"
 export type ReminderFrequency = "daily" | "weekly" | "monthly"
 export type HouseholdRole = "owner" | "admin" | "member"
@@ -75,12 +77,59 @@ export interface Book {
   created_at: string
   status: BookStatus
   pdf_url: string | null
+  design_mode?: BookDesignMode
 }
 
 export interface BookEntry {
   book_id: string
   entry_id: string
   position: number
+}
+
+export interface PageContentItem {
+  id: string
+  type: "photo" | "quote"
+  position?: { x: number; y: number; width?: number; height?: number }
+  crop?: { x: number; y: number; width: number; height: number }
+  zoom?: number
+}
+
+export interface BookPage {
+  id: string
+  book_id: string
+  page_number: number
+  left_layout: PageLayout | null
+  right_layout: PageLayout | null
+  left_content: PageContentItem[]
+  right_content: PageContentItem[]
+  created_at: string
+  updated_at: string
+}
+
+export interface BookPhoto {
+  id: string
+  book_id: string
+  attachment_id: string | null
+  url: string
+  width: number | null
+  height: number | null
+  filename: string | null
+  created_at: string
+}
+
+export interface BookThemeConfig {
+  name: string
+  id: string
+  colors: {
+    primary: string
+    secondary: string
+    accent: string
+    text: string
+  }
+  fonts: {
+    heading: string
+    body: string
+  }
 }
 
 export interface Reminder {
@@ -95,6 +144,7 @@ export interface Reminder {
   enabled: boolean
   created_at: string
 }
+
 
 
 

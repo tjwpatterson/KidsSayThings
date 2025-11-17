@@ -2,6 +2,69 @@ import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { getCurrentHousehold } from "@/lib/household"
 
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const household = await getCurrentHousehold()
+    if (!household) {
+      return NextResponse.json(
+        { error: "No household found" },
+        { status: 404 }
+      )
+    }
+
+    // Verify book belongs to household
+    const { data: book, error: bookError } = await supabase
+      .from("books")
+      .select("id, household_id")
+      .eq("id", id)
+      .eq("household_id", household.id)
+      .single()
+
+    if (bookError || !book) {
+      return NextResponse.json(
+        { error: "Book not found or not authorized" },
+        { status: 404 }
+      )
+    }
+
+    const body = await request.json()
+    const updateData: any = {}
+
+    if (body.status !== undefined) updateData.status = body.status
+    if (body.design_mode !== undefined) updateData.design_mode = body.design_mode
+    if (body.theme !== undefined) updateData.theme = body.theme
+
+    const { data: updatedBook, error: updateError } = await supabase
+      .from("books")
+      .update(updateData)
+      .eq("id", id)
+      .select()
+      .single()
+
+    if (updateError) throw updateError
+
+    return NextResponse.json(updatedBook)
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error.message || "Failed to update book" },
+      { status: 500 }
+    )
+  }
+}
+
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

@@ -225,7 +225,7 @@ export default function BookDetail({ book, householdId }: BookDetailProps) {
           <DialogHeader>
             <DialogTitle>Delete Book</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{book.title || "Untitled Book"}"? 
+              Are you sure you want to delete &quot;{book.title || "Untitled Book"}&quot;? 
               This action cannot be undone and will permanently delete the book and its PDF.
             </DialogDescription>
           </DialogHeader>

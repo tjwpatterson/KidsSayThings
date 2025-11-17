@@ -164,11 +164,11 @@ export default function BookDesigner({
     setSaveTimeout(timeout)
 
     return () => {
-      if (saveTimeout) {
-        clearTimeout(saveTimeout)
+      if (timeout) {
+        clearTimeout(timeout)
       }
     }
-  }, [leftLayout, rightLayout, currentPage])
+  }, [leftLayout, rightLayout, currentPage, savePage])
 
   // Drag handlers
   const handleDragStart = (event: any) => {

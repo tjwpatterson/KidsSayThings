@@ -20,8 +20,13 @@ export default function ResetPasswordForm() {
     setLoading(true)
 
     try {
+      // Use environment variable if available, otherwise fall back to current origin
+      const redirectUrl = process.env.NEXT_PUBLIC_SITE_URL 
+        ? `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
+        : `${window.location.origin}/auth/callback`
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/update-password`,
+        redirectTo: redirectUrl,
       })
 
       if (error) throw error
@@ -52,6 +57,9 @@ export default function ResetPasswordForm() {
           <p className="text-xs text-muted-foreground mt-2">
             Click the link in the email to reset your password. The link will
             expire in 1 hour.
+          </p>
+          <p className="text-xs text-muted-foreground mt-2 font-medium">
+            Important: Make sure to click the link within 1 hour, and use the same browser/device where you requested it.
           </p>
         </div>
         <Button

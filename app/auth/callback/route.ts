@@ -13,6 +13,12 @@ export async function GET(request: Request) {
   // If there's an error in the URL (from Supabase), redirect to login with error
   if (error) {
     const errorMessage = errorDescription || error
+    // If it's a recovery/password reset error, redirect to reset password page
+    if (type === "recovery") {
+      return NextResponse.redirect(
+        `${origin}/reset-password?error=${encodeURIComponent(errorMessage)}`
+      )
+    }
     return NextResponse.redirect(
       `${origin}/login?error=${encodeURIComponent(errorMessage)}`
     )
@@ -26,6 +32,12 @@ export async function GET(request: Request) {
     
     if (exchangeError) {
       console.error("Error exchanging code for session:", exchangeError)
+      // If it's a recovery/password reset, redirect to reset password page
+      if (type === "recovery") {
+        return NextResponse.redirect(
+          `${origin}/reset-password?error=${encodeURIComponent(exchangeError.message || "Password reset failed")}`
+        )
+      }
       return NextResponse.redirect(
         `${origin}/login?error=${encodeURIComponent(exchangeError.message || "Authentication failed")}`
       )
@@ -34,9 +46,19 @@ export async function GET(request: Request) {
     // Verify we have a session
     if (!data.session) {
       console.error("No session after code exchange")
+      if (type === "recovery") {
+        return NextResponse.redirect(
+          `${origin}/reset-password?error=${encodeURIComponent("Failed to create session")}`
+        )
+      }
       return NextResponse.redirect(
         `${origin}/login?error=${encodeURIComponent("Failed to create session")}`
       )
+    }
+
+    // If this is a password reset (recovery), redirect to update password page
+    if (type === "recovery") {
+      return NextResponse.redirect(`${origin}/update-password`)
     }
 
     // Successfully authenticated, redirect to app
@@ -47,8 +69,32 @@ export async function GET(request: Request) {
   // This flow is no longer recommended by Supabase
   if (token && type === "magiclink") {
     return NextResponse.redirect(
-      `${origin}/login?error=${encodeURIComponent("This magic link format is no longer supported. Please request a new magic link.")}`
+      `${origin}/login?error=${encodeURIComponent("This magic link format is no longer supported. Please use password login or request a new magic link.")}`
     )
+  }
+
+  // Handle token-based password reset (older flow - deprecated but still supported)
+  if (token && type === "recovery") {
+    // For token-based recovery, we need to exchange the token for a session
+    // This is the older flow, modern Supabase uses PKCE (code-based) above
+    try {
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        token_hash: token,
+        type: "recovery",
+      })
+
+      if (verifyError || !data.session) {
+        return NextResponse.redirect(
+          `${origin}/reset-password?error=${encodeURIComponent("Password reset link is invalid or has expired. Please request a new one.")}`
+        )
+      }
+
+      return NextResponse.redirect(`${origin}/update-password`)
+    } catch (err: any) {
+      return NextResponse.redirect(
+        `${origin}/reset-password?error=${encodeURIComponent(err.message || "Password reset link is invalid or has expired. Please request a new one.")}`
+      )
+    }
   }
 
   // No code or token found - invalid callback

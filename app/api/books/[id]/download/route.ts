@@ -54,7 +54,7 @@ export async function GET(
     // URL format: https://[project].supabase.co/storage/v1/object/public/attachments/books/[id]/[timestamp].pdf
     // We need: books/[id]/[timestamp].pdf
     const urlParts = book.pdf_url.split("/")
-    const attachmentsIndex = urlParts.findIndex((part) => part === "attachments")
+    const attachmentsIndex = urlParts.findIndex((part: string) => part === "attachments")
     
     if (attachmentsIndex === -1) {
       // If we can't find "attachments" in the URL, it might be a signed URL already

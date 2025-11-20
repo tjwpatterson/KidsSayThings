@@ -187,9 +187,9 @@ export default function QuickAddCard({
             </SelectTrigger>
             <SelectContent>
               {persons.length === 0 ? (
-                <SelectItem value="" disabled>
+                <div className="px-2 py-1.5 text-sm text-muted-foreground">
                   No people added yet
-                </SelectItem>
+                </div>
               ) : (
                 persons.map((person) => (
                   <SelectItem key={person.id} value={person.id}>

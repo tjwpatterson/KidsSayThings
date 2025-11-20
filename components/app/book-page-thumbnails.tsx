@@ -122,14 +122,26 @@ export default function BookPageThumbnails({
                     isActive ? "text-primary font-semibold" : "text-muted-foreground"
                   )}
                 >
-                  {pageNum}
+                  {pageNum === 1 ? "Cover" : pageNum === maxPage ? "Back" : pageNum}
                 </span>
                 {page ? (
-                  <div className="w-12 h-16 bg-white rounded border border-border flex items-center justify-center text-[8px] text-muted-foreground">
-                    {page.left_content?.length || 0}/{page.right_content?.length || 0}
+                  <div className="w-12 h-16 bg-white rounded border border-border flex flex-col items-center justify-center text-[8px] text-muted-foreground">
+                    <div className="text-[6px] opacity-60 mb-1">
+                      {pageNum === 1 && "Front"}
+                      {pageNum === 2 && "Title"}
+                      {pageNum === maxPage && "Back"}
+                    </div>
+                    <div>
+                      {page.left_content?.length || 0}/{page.right_content?.length || 0}
+                    </div>
                   </div>
                 ) : (
-                  <div className="w-12 h-16 bg-muted rounded border border-dashed border-muted-foreground/30" />
+                  <div className="w-12 h-16 bg-muted rounded border border-dashed border-muted-foreground/30 flex flex-col items-center justify-center">
+                    <span className="text-[6px] text-muted-foreground">
+                      {pageNum === 1 && "Cover"}
+                      {pageNum === maxPage && "Back"}
+                    </span>
+                  </div>
                 )}
               </button>
             )

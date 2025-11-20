@@ -58,6 +58,16 @@ export async function GET(
   }
 }
 
+// Increase body size limit for file uploads
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+  maxDuration: 30, // 30 seconds for large uploads
+}
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

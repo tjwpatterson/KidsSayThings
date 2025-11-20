@@ -79,52 +79,75 @@ export default function BookPhotoUpload({
     setUploading(true)
 
     try {
-      const formData = new FormData()
-      files.forEach((file) => {
-        formData.append("files", file)
-      })
+      // Upload files one at a time to avoid Vercel payload size limits
+      const uploadedPhotos: BookPhoto[] = []
+      const failedUploads: string[] = []
 
-      const res = await fetch(`/api/books/${bookId}/photos`, {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!res.ok) {
-        // Try to parse as JSON, but handle non-JSON responses
-        let errorMessage = "Failed to upload photos"
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
         try {
-          const contentType = res.headers.get("content-type")
-          if (contentType && contentType.includes("application/json")) {
-            const error = await res.json()
-            errorMessage = error.error || errorMessage
-          } else {
-            // If not JSON, try to get text
-            const text = await res.text()
-            errorMessage = text || errorMessage
+          const formData = new FormData()
+          formData.append("files", file)
+
+          const res = await fetch(`/api/books/${bookId}/photos`, {
+            method: "POST",
+            body: formData,
+          })
+
+          if (!res.ok) {
+            // Try to parse as JSON, but handle non-JSON responses
+            let errorMessage = `Failed to upload ${file.name}`
+            try {
+              const contentType = res.headers.get("content-type")
+              if (contentType && contentType.includes("application/json")) {
+                const error = await res.json()
+                errorMessage = error.error || errorMessage
+              } else {
+                // If not JSON, try to get text
+                const text = await res.text()
+                errorMessage = text || errorMessage
+              }
+            } catch (parseError) {
+              // If parsing fails, use status text
+              errorMessage = res.statusText || errorMessage
+            }
+            throw new Error(errorMessage)
           }
-        } catch (parseError) {
-          // If parsing fails, use status text
-          errorMessage = res.statusText || errorMessage
+
+          const data = await res.json()
+          if (data.photos && data.photos.length > 0) {
+            uploadedPhotos.push(...data.photos)
+          }
+          if (data.warnings && data.warnings.length > 0) {
+            failedUploads.push(...data.warnings)
+          }
+        } catch (error: any) {
+          console.error(`Error uploading ${file.name}:`, error)
+          failedUploads.push(`${file.name}: ${error.message || "Upload failed"}`)
         }
-        throw new Error(errorMessage)
       }
 
-      const data = await res.json()
-      onUploaded(data.photos)
+      if (uploadedPhotos.length === 0) {
+        throw new Error(failedUploads.length > 0 
+          ? `All uploads failed: ${failedUploads.join(', ')}`
+          : "Failed to upload photos")
+      }
+
+      onUploaded(uploadedPhotos)
       setFiles([])
       onClose()
       
       // Show success message with warnings if any
-      if (data.warnings && data.warnings.length > 0) {
+      if (failedUploads.length > 0) {
         toast({
           title: "Photos uploaded with warnings",
-          description: `${data.photos.length} photo(s) uploaded. Some failed: ${data.warnings.join(', ')}`,
+          description: `${uploadedPhotos.length} photo(s) uploaded. ${failedUploads.length} failed: ${failedUploads.slice(0, 2).join(', ')}${failedUploads.length > 2 ? '...' : ''}`,
           variant: "default",
         })
       } else {
         toast({
           title: "Photos uploaded!",
-          description: `${data.photos.length} photo(s) added successfully`,
+          description: `${uploadedPhotos.length} photo(s) added successfully`,
         })
       }
     } catch (error: any) {

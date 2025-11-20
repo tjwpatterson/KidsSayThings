@@ -12,6 +12,7 @@ interface BookCanvasProps {
   photos: BookPhoto[]
   quotes: Entry[]
   persons: Person[]
+  totalPages: number
   onLeftLayoutChange: (layout: PageLayout | null) => void
   onRightLayoutChange: (layout: PageLayout | null) => void
   onRemoveItem: (side: "left" | "right", itemId: string) => void

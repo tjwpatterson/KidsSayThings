@@ -31,6 +31,7 @@ export default function PersonSidebar({
 
   useEffect(() => {
     loadPersons()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [householdId])
 
   const loadPersons = async () => {

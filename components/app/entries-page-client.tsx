@@ -13,6 +13,16 @@ export default function EntriesPageClient({ householdId }: EntriesPageClientProp
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
+  if (!householdId) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-full overflow-hidden">
       {/* Left Sidebar */}

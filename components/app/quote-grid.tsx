@@ -16,7 +16,6 @@ export default function QuoteGrid({ householdId, personId }: QuoteGridProps) {
   const [persons, setPersons] = useState<Record<string, Person>>({})
   const [loading, setLoading] = useState(true)
   const [dateRange, setDateRange] = useState<DateRange>({ start: null, end: null })
-  const supabase = createClient()
 
   useEffect(() => {
     if (!personId) {
@@ -24,6 +23,8 @@ export default function QuoteGrid({ householdId, personId }: QuoteGridProps) {
       setLoading(false)
       return
     }
+
+    const supabase = createClient()
 
     const loadEntries = async () => {
       setLoading(true)
@@ -85,13 +86,19 @@ export default function QuoteGrid({ householdId, personId }: QuoteGridProps) {
         }
       } catch (error: any) {
         console.error("Error loading entries:", error)
+        setEntries([])
       } finally {
         setLoading(false)
       }
     }
 
     loadEntries()
-  }, [householdId, personId, dateRange.start, dateRange.end])
+  }, [
+    householdId,
+    personId,
+    dateRange.start ? dateRange.start.toISOString() : null,
+    dateRange.end ? dateRange.end.toISOString() : null,
+  ])
 
   if (!personId) {
     return (

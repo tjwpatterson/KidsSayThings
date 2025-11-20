@@ -64,13 +64,17 @@ export default function DateRangeFilter({ value, onChange }: DateRangeFilterProp
   }
 
   const formatDateRange = () => {
-    if (!value.start && !value.end) return "All Time"
-    if (value.start && value.end) {
-      return `${format(value.start, "MMM d")} - ${format(value.end, "MMM d, yyyy")}`
+    try {
+      if (!value.start && !value.end) return "All Time"
+      if (value.start && value.end) {
+        return `${format(value.start, "MMM d")} - ${format(value.end, "MMM d, yyyy")}`
+      }
+      if (value.start) return `From ${format(value.start, "MMM d, yyyy")}`
+      if (value.end) return `Until ${format(value.end, "MMM d, yyyy")}`
+      return "All Time"
+    } catch (error) {
+      return "All Time"
     }
-    if (value.start) return `From ${format(value.start, "MMM d, yyyy")}`
-    if (value.end) return `Until ${format(value.end, "MMM d, yyyy")}`
-    return "All Time"
   }
 
   return (

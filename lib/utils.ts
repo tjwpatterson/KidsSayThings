@@ -37,7 +37,10 @@ export function getPersonColor(personId: string): string {
  * Gets the first name from a full display name
  */
 export function getFirstName(displayName: string): string {
-  return displayName.split(' ')[0]
+  if (!displayName || typeof displayName !== 'string') {
+    return ''
+  }
+  return displayName.split(' ')[0] || displayName
 }
 
 

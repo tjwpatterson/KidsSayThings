@@ -10,7 +10,6 @@ import { useToast } from "@/components/ui/use-toast"
 import { Plus } from "lucide-react"
 import PersonTile from "./person-tile"
 import type { Person } from "@/lib/types"
-import { motion, AnimatePresence } from "framer-motion"
 
 interface PersonSidebarProps {
   householdId: string
@@ -150,23 +149,20 @@ export default function PersonSidebar({
             </p>
           </div>
         ) : (
-          <AnimatePresence>
-            {persons.map((person, index) => (
-              <motion.div
-                key={person.id}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <PersonTile
-                  person={person}
-                  isActive={selectedPersonId === person.id}
-                  onClick={() => onPersonSelect(person.id)}
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
+          <>
+            {persons.map((person, index) => {
+              if (!person || !person.id) return null
+              return (
+                <div key={person.id}>
+                  <PersonTile
+                    person={person}
+                    isActive={selectedPersonId === person.id}
+                    onClick={() => onPersonSelect(person.id)}
+                  />
+                </div>
+              )
+            })}
+          </>
         )}
       </div>
     </div>

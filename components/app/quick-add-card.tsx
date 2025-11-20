@@ -16,7 +16,6 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 import { Send, Image, Mic } from "lucide-react"
 import type { Person } from "@/lib/types"
-import { motion } from "framer-motion"
 
 interface QuickAddCardProps {
   householdId: string
@@ -170,11 +169,7 @@ export default function QuickAddCard({
   const canSubmit = text.trim().length > 0 && selectedPersonId !== null && !loading
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="border-b pb-6 mb-6"
-    >
+    <div className="border-b pb-6 mb-6">
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Person selector - ChatGPT style */}
         <div className="space-y-2">
@@ -259,7 +254,7 @@ export default function QuickAddCard({
           </Button>
         </div>
       </form>
-    </motion.div>
+    </div>
   )
 }
 

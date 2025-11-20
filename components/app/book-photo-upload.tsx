@@ -52,6 +52,30 @@ export default function BookPhotoUpload({
       return
     }
 
+    // Validate file sizes and types before upload
+    const maxSize = 10 * 1024 * 1024 // 10MB
+    const invalidFiles: string[] = []
+    
+    files.forEach((file) => {
+      if (file.size > maxSize) {
+        invalidFiles.push(`${file.name} (too large, max 10MB)`)
+      }
+      // Check if it's an image type (including HEIC)
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif']
+      if (!validTypes.includes(file.type.toLowerCase()) && !file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|heic|heif)$/i)) {
+        invalidFiles.push(`${file.name} (unsupported format)`)
+      }
+    })
+
+    if (invalidFiles.length > 0) {
+      toast({
+        title: "Invalid files",
+        description: invalidFiles.join(', '),
+        variant: "destructive",
+      })
+      return
+    }
+
     setUploading(true)
 
     try {
@@ -66,18 +90,48 @@ export default function BookPhotoUpload({
       })
 
       if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || "Failed to upload photos")
+        // Try to parse as JSON, but handle non-JSON responses
+        let errorMessage = "Failed to upload photos"
+        try {
+          const contentType = res.headers.get("content-type")
+          if (contentType && contentType.includes("application/json")) {
+            const error = await res.json()
+            errorMessage = error.error || errorMessage
+          } else {
+            // If not JSON, try to get text
+            const text = await res.text()
+            errorMessage = text || errorMessage
+          }
+        } catch (parseError) {
+          // If parsing fails, use status text
+          errorMessage = res.statusText || errorMessage
+        }
+        throw new Error(errorMessage)
       }
 
       const data = await res.json()
       onUploaded(data.photos)
       setFiles([])
       onClose()
+      
+      // Show success message with warnings if any
+      if (data.warnings && data.warnings.length > 0) {
+        toast({
+          title: "Photos uploaded with warnings",
+          description: `${data.photos.length} photo(s) uploaded. Some failed: ${data.warnings.join(', ')}`,
+          variant: "default",
+        })
+      } else {
+        toast({
+          title: "Photos uploaded!",
+          description: `${data.photos.length} photo(s) added successfully`,
+        })
+      }
     } catch (error: any) {
+      console.error("Upload error:", error)
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to upload photos",
+        description: error.message || "Failed to upload photos. Please try again.",
         variant: "destructive",
       })
     } finally {

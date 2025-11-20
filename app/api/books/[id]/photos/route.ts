@@ -96,7 +96,16 @@ export async function POST(
       )
     }
 
-    const formData = await request.formData()
+    let formData: FormData
+    try {
+      formData = await request.formData()
+    } catch (error: any) {
+      return NextResponse.json(
+        { error: "Failed to parse form data. File may be too large (max 10MB per file)." },
+        { status: 400 }
+      )
+    }
+
     const files = formData.getAll("files") as File[]
 
     if (!files || files.length === 0) {
@@ -106,12 +115,42 @@ export async function POST(
       )
     }
 
+    // Validate files before processing
+    const maxSize = 10 * 1024 * 1024 // 10MB
+    const invalidFiles: string[] = []
+    
+    files.forEach((file) => {
+      if (file.size > maxSize) {
+        invalidFiles.push(`${file.name} (${Math.round(file.size / 1024 / 1024)}MB, max 10MB)`)
+      }
+    })
+
+    if (invalidFiles.length > 0) {
+      return NextResponse.json(
+        { error: `Files too large: ${invalidFiles.join(', ')}` },
+        { status: 400 }
+      )
+    }
+
     const serviceClient = await createServiceRoleClient()
     const uploadedPhotos = []
+    const failedUploads: string[] = []
 
     for (const file of files) {
-      if (!file.type.startsWith("image/")) {
-        continue // Skip non-image files
+      // Check if it's an image type (including HEIC by extension)
+      const isImageType = file.type.startsWith("image/")
+      const isImageExtension = /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(file.name)
+      
+      if (!isImageType && !isImageExtension) {
+        failedUploads.push(`${file.name} (unsupported format)`)
+        continue
+      }
+
+      // For HEIC files, we'll try to upload but note they may not display in browsers
+      const isHeic = /\.heic$/i.test(file.name) || file.type.toLowerCase().includes('heic')
+      if (isHeic) {
+        // HEIC files can be uploaded but browsers can't display them natively
+        // We'll upload them but they may need conversion for display
       }
 
       // Generate filename
@@ -133,11 +172,8 @@ export async function POST(
 
       if (uploadError) {
         console.error("Upload error:", uploadError)
-        // Return more detailed error
-        return NextResponse.json(
-          { error: `Failed to upload ${file.name}: ${uploadError.message}` },
-          { status: 500 }
-        )
+        failedUploads.push(`${file.name}: ${uploadError.message}`)
+        continue // Continue with other files instead of failing completely
       }
 
       // Get public URL
@@ -163,11 +199,8 @@ export async function POST(
 
       if (photoError) {
         console.error("Photo insert error:", photoError)
-        // Return more detailed error
-        return NextResponse.json(
-          { error: `Failed to save photo ${file.name}: ${photoError.message}` },
-          { status: 500 }
-        )
+        failedUploads.push(`${file.name}: ${photoError.message}`)
+        continue // Continue with other files
       }
 
       uploadedPhotos.push(photo)
@@ -175,15 +208,30 @@ export async function POST(
 
     if (uploadedPhotos.length === 0) {
       return NextResponse.json(
-        { error: "No photos were uploaded successfully" },
+        { 
+          error: "No photos were uploaded successfully",
+          failedUploads: failedUploads.length > 0 ? failedUploads : undefined
+        },
         { status: 400 }
       )
     }
 
-    return NextResponse.json({ photos: uploadedPhotos })
+    // Return success with any warnings about failed uploads
+    return NextResponse.json({ 
+      photos: uploadedPhotos,
+      warnings: failedUploads.length > 0 ? failedUploads : undefined
+    })
   } catch (error: any) {
+    console.error("Photo upload route error:", error)
+    // Check if it's a body size limit error
+    if (error.message && error.message.includes("body") && error.message.includes("limit")) {
+      return NextResponse.json(
+        { error: "File too large. Maximum file size is 10MB per file." },
+        { status: 413 }
+      )
+    }
     return NextResponse.json(
-      { error: error.message || "Failed to upload photos" },
+      { error: error.message || "Failed to upload photos. Please try again." },
       { status: 500 }
     )
   }

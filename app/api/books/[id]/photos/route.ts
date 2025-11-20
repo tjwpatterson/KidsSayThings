@@ -106,140 +106,161 @@ export async function POST(
       )
     }
 
-    let formData: FormData
-    try {
-      formData = await request.formData()
-    } catch (error: any) {
-      return NextResponse.json(
-        { error: "Failed to parse form data. File may be too large (max 10MB per file)." },
-        { status: 400 }
-      )
-    }
-
-    const files = formData.getAll("files") as File[]
-
-    if (!files || files.length === 0) {
-      return NextResponse.json(
-        { error: "No files provided" },
-        { status: 400 }
-      )
-    }
-
-    // Validate files before processing
-    const maxSize = 10 * 1024 * 1024 // 10MB
-    const invalidFiles: string[] = []
+    // Check if this is a JSON request (from client-side upload) or FormData (legacy)
+    const contentType = request.headers.get("content-type") || ""
     
-    files.forEach((file) => {
-      if (file.size > maxSize) {
-        invalidFiles.push(`${file.name} (${Math.round(file.size / 1024 / 1024)}MB, max 10MB)`)
+    if (contentType.includes("application/json")) {
+      // New approach: Client uploads directly to Supabase, we just save metadata
+      const body = await request.json()
+      const { url, filename } = body
+
+      if (!url || !filename) {
+        return NextResponse.json(
+          { error: "URL and filename are required" },
+          { status: 400 }
+        )
       }
-    })
-
-    if (invalidFiles.length > 0) {
-      return NextResponse.json(
-        { error: `Files too large: ${invalidFiles.join(', ')}` },
-        { status: 400 }
-      )
-    }
-
-    const serviceClient = await createServiceRoleClient()
-    const uploadedPhotos = []
-    const failedUploads: string[] = []
-
-    for (const file of files) {
-      // Check if it's an image type (including HEIC by extension)
-      const isImageType = file.type.startsWith("image/")
-      const isImageExtension = /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(file.name)
-      
-      if (!isImageType && !isImageExtension) {
-        failedUploads.push(`${file.name} (unsupported format)`)
-        continue
-      }
-
-      // For HEIC files, we'll try to upload but note they may not display in browsers
-      const isHeic = /\.heic$/i.test(file.name) || file.type.toLowerCase().includes('heic')
-      if (isHeic) {
-        // HEIC files can be uploaded but browsers can't display them natively
-        // We'll upload them but they may need conversion for display
-      }
-
-      // Generate filename
-      const timestamp = Date.now()
-      const filename = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`
-      const filePath = `books/${id}/photos/${filename}`
-
-      // Convert file to buffer
-      const arrayBuffer = await file.arrayBuffer()
-      const buffer = Buffer.from(arrayBuffer)
-
-      // Upload to Supabase Storage
-      const { data: uploadData, error: uploadError } = await serviceClient.storage
-        .from("attachments")
-        .upload(filePath, buffer, {
-          contentType: file.type,
-          upsert: false,
-        })
-
-      if (uploadError) {
-        console.error("Upload error:", uploadError)
-        failedUploads.push(`${file.name}: ${uploadError.message}`)
-        continue // Continue with other files instead of failing completely
-      }
-
-      // Get public URL
-      const {
-        data: { publicUrl },
-      } = serviceClient.storage.from("attachments").getPublicUrl(filePath)
-
-      // Get image dimensions (optional, can be done client-side)
-      // For now, we'll store null and let the client handle it
 
       // Save to book_photos table
       const { data: photo, error: photoError } = await supabase
         .from("book_photos")
         .insert({
           book_id: id,
-          url: publicUrl,
+          url: url,
           filename: filename,
-          width: null, // Can be calculated client-side
+          width: null,
           height: null,
         })
         .select()
         .single()
 
       if (photoError) {
-        console.error("Photo insert error:", photoError)
-        failedUploads.push(`${file.name}: ${photoError.message}`)
-        continue // Continue with other files
+        return NextResponse.json(
+          { error: `Failed to save photo: ${photoError.message}` },
+          { status: 500 }
+        )
       }
 
-      uploadedPhotos.push(photo)
-    }
+      return NextResponse.json({ photo })
+    } else {
+      // Legacy FormData approach (kept for backwards compatibility)
+      let formData: FormData
+      try {
+        formData = await request.formData()
+      } catch (error: any) {
+        return NextResponse.json(
+          { error: "Failed to parse form data. File may be too large (max 10MB per file)." },
+          { status: 400 }
+        )
+      }
 
-    if (uploadedPhotos.length === 0) {
-      return NextResponse.json(
-        { 
-          error: "No photos were uploaded successfully",
-          failedUploads: failedUploads.length > 0 ? failedUploads : undefined
-        },
-        { status: 400 }
-      )
-    }
+      const files = formData.getAll("files") as File[]
 
-    // Return success with any warnings about failed uploads
-    return NextResponse.json({ 
-      photos: uploadedPhotos,
-      warnings: failedUploads.length > 0 ? failedUploads : undefined
-    })
+      if (!files || files.length === 0) {
+        return NextResponse.json(
+          { error: "No files provided" },
+          { status: 400 }
+        )
+      }
+
+      // Validate files before processing
+      const maxSize = 10 * 1024 * 1024 // 10MB
+      const invalidFiles: string[] = []
+      
+      files.forEach((file) => {
+        if (file.size > maxSize) {
+          invalidFiles.push(`${file.name} (${Math.round(file.size / 1024 / 1024)}MB, max 10MB)`)
+        }
+      })
+
+      if (invalidFiles.length > 0) {
+        return NextResponse.json(
+          { error: `Files too large: ${invalidFiles.join(', ')}` },
+          { status: 400 }
+        )
+      }
+
+      const serviceClient = await createServiceRoleClient()
+      const uploadedPhotos = []
+      const failedUploads: string[] = []
+
+      for (const file of files) {
+        // Check if it's an image type (including HEIC by extension)
+        const isImageType = file.type.startsWith("image/")
+        const isImageExtension = /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(file.name)
+        
+        if (!isImageType && !isImageExtension) {
+          failedUploads.push(`${file.name} (unsupported format)`)
+          continue
+        }
+
+        // Generate filename
+        const timestamp = Date.now()
+        const filename = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`
+        const filePath = `books/${id}/photos/${filename}`
+
+        // Convert file to buffer
+        const arrayBuffer = await file.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await serviceClient.storage
+          .from("attachments")
+          .upload(filePath, buffer, {
+            contentType: file.type,
+            upsert: false,
+          })
+
+        if (uploadError) {
+          console.error("Upload error:", uploadError)
+          failedUploads.push(`${file.name}: ${uploadError.message}`)
+          continue
+        }
+
+        // Get public URL
+        const {
+          data: { publicUrl },
+        } = serviceClient.storage.from("attachments").getPublicUrl(filePath)
+
+        // Save to book_photos table
+        const { data: photo, error: photoError } = await supabase
+          .from("book_photos")
+          .insert({
+            book_id: id,
+            url: publicUrl,
+            filename: filename,
+            width: null,
+            height: null,
+          })
+          .select()
+          .single()
+
+        if (photoError) {
+          console.error("Photo insert error:", photoError)
+          failedUploads.push(`${file.name}: ${photoError.message}`)
+          continue
+        }
+
+        uploadedPhotos.push(photo)
+      }
+
+      if (uploadedPhotos.length === 0) {
+        return NextResponse.json(
+          { 
+            error: "No photos were uploaded successfully",
+            failedUploads: failedUploads.length > 0 ? failedUploads : undefined
+          },
+          { status: 400 }
+        )
+      }
+
+      return NextResponse.json({ 
+        photos: uploadedPhotos,
+        warnings: failedUploads.length > 0 ? failedUploads : undefined
+      })
+    }
   } catch (error: any) {
     console.error("Photo upload route error:", error)
-    // Check if it's a body size limit error
-    if (error.message && error.message.includes("body") && error.message.includes("limit")) {
-      return NextResponse.json(
-        { error: "File too large. Maximum file size is 10MB per file." },
-        { status: 413 }
-      )
-    }
     return NextResponse.json(
       { error: error.message || "Failed to upload photos. Please try again." },
       { status: 500 }

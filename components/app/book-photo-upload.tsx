@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Upload, X, Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
+import { createClient } from "@/lib/supabase/client"
 import type { BookPhoto } from "@/lib/types"
 
 interface BookPhotoUploadProps {
@@ -79,47 +80,56 @@ export default function BookPhotoUpload({
     setUploading(true)
 
     try {
-      // Upload files one at a time to avoid Vercel payload size limits
+      const supabase = createClient()
       const uploadedPhotos: BookPhoto[] = []
       const failedUploads: string[] = []
 
+      // Upload files directly to Supabase Storage (bypasses Vercel payload limit)
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
         try {
-          const formData = new FormData()
-          formData.append("files", file)
+          // Generate filename
+          const timestamp = Date.now()
+          const filename = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`
+          const filePath = `books/${bookId}/photos/${filename}`
 
+          // Upload directly to Supabase Storage
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from("attachments")
+            .upload(filePath, file, {
+              contentType: file.type || "image/jpeg",
+              upsert: false,
+            })
+
+          if (uploadError) {
+            console.error(`Upload error for ${file.name}:`, uploadError)
+            failedUploads.push(`${file.name}: ${uploadError.message}`)
+            continue
+          }
+
+          // Get public URL
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from("attachments").getPublicUrl(filePath)
+
+          // Save photo metadata to database via API
           const res = await fetch(`/api/books/${bookId}/photos`, {
             method: "POST",
-            body: formData,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              url: publicUrl,
+              filename: filename,
+            }),
           })
 
           if (!res.ok) {
-            // Try to parse as JSON, but handle non-JSON responses
-            let errorMessage = `Failed to upload ${file.name}`
-            try {
-              const contentType = res.headers.get("content-type")
-              if (contentType && contentType.includes("application/json")) {
-                const error = await res.json()
-                errorMessage = error.error || errorMessage
-              } else {
-                // If not JSON, try to get text
-                const text = await res.text()
-                errorMessage = text || errorMessage
-              }
-            } catch (parseError) {
-              // If parsing fails, use status text
-              errorMessage = res.statusText || errorMessage
-            }
-            throw new Error(errorMessage)
+            const error = await res.json()
+            throw new Error(error.error || "Failed to save photo metadata")
           }
 
           const data = await res.json()
-          if (data.photos && data.photos.length > 0) {
-            uploadedPhotos.push(...data.photos)
-          }
-          if (data.warnings && data.warnings.length > 0) {
-            failedUploads.push(...data.warnings)
+          if (data.photo) {
+            uploadedPhotos.push(data.photo)
           }
         } catch (error: any) {
           console.error(`Error uploading ${file.name}:`, error)

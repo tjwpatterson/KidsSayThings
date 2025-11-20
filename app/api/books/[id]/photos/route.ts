@@ -114,68 +114,28 @@ export async function POST(
       // We've already verified:
       // 1. User is authenticated (checked above)
       // 2. Book belongs to user's household (checked above)
-      // Now use service role client to insert (bypasses RLS since we've verified permissions)
-      try {
-        const serviceClient = await createServiceRoleClient()
-        
-        if (!serviceClient) {
-          throw new Error("Failed to create service role client")
-        }
+      // Use authenticated client - RLS policy will allow since user is household member
+      const { data: photo, error: photoError } = await supabase
+        .from("book_photos")
+        .insert({
+          book_id: id,
+          url: url,
+          filename: filename,
+          width: null,
+          height: null,
+        })
+        .select()
+        .single()
 
-        const { data: photo, error: photoError } = await serviceClient
-          .from("book_photos")
-          .insert({
-            book_id: id,
-            url: url,
-            filename: filename,
-            width: null,
-            height: null,
-          })
-          .select()
-          .single()
-
-        if (photoError) {
-          console.error("Photo insert error:", photoError)
-          // Check if it's an RLS error
-          if (photoError.message && (photoError.message.includes("row-level security") || photoError.message.includes("policy"))) {
-            console.error("RLS error detected - service role client may not be configured correctly")
-            // Fallback: try with authenticated client
-            const { data: photoFallback, error: fallbackError } = await supabase
-              .from("book_photos")
-              .insert({
-                book_id: id,
-                url: url,
-                filename: filename,
-                width: null,
-                height: null,
-              })
-              .select()
-              .single()
-            
-            if (fallbackError) {
-              return NextResponse.json(
-                { error: `Failed to save photo: ${fallbackError.message}` },
-                { status: 500 }
-              )
-            }
-            
-            return NextResponse.json({ photo: photoFallback })
-          }
-          
-          return NextResponse.json(
-            { error: `Failed to save photo: ${photoError.message}` },
-            { status: 500 }
-          )
-        }
-
-        return NextResponse.json({ photo })
-      } catch (error: any) {
-        console.error("Error in photo insert:", error)
+      if (photoError) {
+        console.error("Photo insert error:", photoError)
         return NextResponse.json(
-          { error: `Failed to save photo: ${error.message || "Unknown error"}` },
+          { error: `Failed to save photo: ${photoError.message}` },
           { status: 500 }
         )
       }
+
+      return NextResponse.json({ photo })
     } else {
       // Legacy FormData approach (kept for backwards compatibility)
       let formData: FormData

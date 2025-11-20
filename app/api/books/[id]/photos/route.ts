@@ -111,7 +111,22 @@ export async function POST(
         )
       }
 
-      // Save to book_photos table
+      // Verify user is authenticated and has access to this book
+      // The supabase client already has the user session from getCurrentHousehold()
+      // But let's double-check the user is authenticated
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser()
+
+      if (!currentUser) {
+        return NextResponse.json(
+          { error: "Unauthorized" },
+          { status: 401 }
+        )
+      }
+
+      // Verify book belongs to household (already done above, but ensure it's still valid)
+      // Save to book_photos table using the authenticated client
       const { data: photo, error: photoError } = await supabase
         .from("book_photos")
         .insert({
@@ -125,6 +140,14 @@ export async function POST(
         .single()
 
       if (photoError) {
+        console.error("Photo insert error:", photoError)
+        // Check if it's an RLS error
+        if (photoError.message.includes("row-level security") || photoError.message.includes("policy")) {
+          return NextResponse.json(
+            { error: `Permission denied: You may not have access to add photos to this book. ${photoError.message}` },
+            { status: 403 }
+          )
+        }
         return NextResponse.json(
           { error: `Failed to save photo: ${photoError.message}` },
           { status: 500 }

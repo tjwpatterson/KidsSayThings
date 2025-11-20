@@ -28,9 +28,9 @@ export async function generateBookPDF({
   tags,
 }: BookRenderOptions): Promise<Buffer> {
   // Page dimensions in inches, converted to points
-  const dimensions = {
+  const dimensions: Record<"6x9" | "digital", { width: number; height: number }> = {
     "6x9": { width: 6, height: 9 },
-    "8x10": { width: 8, height: 10 },
+    "digital": { width: 8.5, height: 11 }, // Standard US Letter size for digital books
   }
 
   const sizeInches = dimensions[book.size]

@@ -31,9 +31,17 @@ export async function createClient() {
 export async function createServiceRoleClient() {
   const { createClient: createSupabaseClient } = await import("@supabase/supabase-js")
   
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL environment variable")
+  }
+  
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY environment variable")
+  }
+  
   return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
     {
       auth: {
         autoRefreshToken: false,

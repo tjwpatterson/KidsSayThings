@@ -114,7 +114,7 @@ export default function BookSidebarContent({
 
   if (activeTab === "photos") {
     return (
-      <div className="w-80 border-r bg-muted/30 flex flex-col overflow-hidden">
+      <div className="flex-1 border-r bg-muted/30 flex flex-col overflow-hidden min-w-[200px]">
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-semibold text-sm">Photos</h3>
@@ -144,7 +144,7 @@ export default function BookSidebarContent({
 
   if (activeTab === "quotes") {
     return (
-      <div className="w-80 border-r bg-muted/30 flex flex-col overflow-hidden">
+      <div className="flex-1 border-r bg-muted/30 flex flex-col overflow-hidden min-w-[200px]">
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-sm">Quotes</h3>
@@ -172,7 +172,7 @@ export default function BookSidebarContent({
 
   if (activeTab === "theme") {
     return (
-      <div className="w-80 border-r bg-muted/30 flex flex-col overflow-y-auto">
+      <div className="flex-1 border-r bg-muted/30 flex flex-col overflow-y-auto min-w-[200px]">
         <div className="p-4 space-y-6">
           <div>
             <Label className="text-sm font-semibold mb-3 block">Theme</Label>
@@ -208,7 +208,7 @@ export default function BookSidebarContent({
 
   if (activeTab === "settings") {
     return (
-      <div className="w-80 border-r bg-muted/30 flex flex-col overflow-y-auto">
+      <div className="flex-1 border-r bg-muted/30 flex flex-col overflow-y-auto min-w-[200px]">
         <div className="p-4 space-y-6">
           <div>
             <Label htmlFor="dedication" className="text-sm font-semibold mb-3 block">

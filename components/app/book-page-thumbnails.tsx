@@ -82,7 +82,7 @@ export default function BookPageThumbnails({
   }
 
   return (
-    <div className="border-t bg-background flex items-center">
+    <div className="border-t-2 bg-background flex items-center h-32 shadow-lg">
       {/* Left Arrow */}
       <Button
         variant="ghost"
@@ -90,16 +90,16 @@ export default function BookPageThumbnails({
         onClick={scrollLeft}
         className="h-full rounded-none border-r shrink-0"
       >
-        <ChevronLeft className="h-4 w-4" />
+        <ChevronLeft className="h-5 w-5" />
       </Button>
 
       {/* Thumbnails Container */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-x-auto scrollbar-hide px-2 py-2"
+        className="flex-1 overflow-x-auto scrollbar-hide px-3 py-3"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
-        <div className="flex items-center gap-2 min-w-max">
+        <div className="flex items-center gap-3 min-w-max">
           {pageNumbers.map((pageNum) => {
             const page = pages.find((p) => p.page_number === pageNum)
             const isActive = pageNum === currentPage
@@ -110,34 +110,34 @@ export default function BookPageThumbnails({
                 ref={isActive ? currentPageRef : null}
                 onClick={() => onPageSelect(pageNum)}
                 className={cn(
-                  "w-16 h-20 flex flex-col items-center justify-center rounded border-2 transition-all shrink-0",
+                  "w-20 h-24 flex flex-col items-center justify-center rounded-lg border-2 transition-all shrink-0",
                   isActive
-                    ? "border-primary bg-primary/5 shadow-sm"
-                    : "border-border bg-muted/50 hover:border-primary/50 hover:bg-muted"
+                    ? "border-primary bg-primary/10 shadow-md scale-105"
+                    : "border-border bg-muted/50 hover:border-primary/50 hover:bg-muted hover:scale-102"
                 )}
               >
                 <span
                   className={cn(
-                    "text-xs font-medium mb-1",
-                    isActive ? "text-primary font-semibold" : "text-muted-foreground"
+                    "text-xs font-medium mb-1.5",
+                    isActive ? "text-primary font-bold" : "text-muted-foreground"
                   )}
                 >
                   {pageNum === 1 ? "Cover" : pageNum === maxPage ? "Back" : pageNum}
                 </span>
                 {page ? (
-                  <div className="w-12 h-16 bg-white rounded border border-border flex flex-col items-center justify-center text-[8px] text-muted-foreground">
-                    <div className="text-[6px] opacity-60 mb-1">
+                  <div className="w-14 h-18 bg-white rounded border border-border flex flex-col items-center justify-center text-[8px] text-muted-foreground shadow-sm">
+                    <div className="text-[7px] font-medium opacity-70 mb-1">
                       {pageNum === 1 && "Front"}
                       {pageNum === 2 && "Title"}
                       {pageNum === maxPage && "Back"}
                     </div>
-                    <div>
+                    <div className="text-[9px]">
                       {page.left_content?.length || 0}/{page.right_content?.length || 0}
                     </div>
                   </div>
                 ) : (
-                  <div className="w-12 h-16 bg-muted rounded border border-dashed border-muted-foreground/30 flex flex-col items-center justify-center">
-                    <span className="text-[6px] text-muted-foreground">
+                  <div className="w-14 h-18 bg-muted rounded border border-dashed border-muted-foreground/30 flex flex-col items-center justify-center">
+                    <span className="text-[7px] text-muted-foreground font-medium">
                       {pageNum === 1 && "Cover"}
                       {pageNum === maxPage && "Back"}
                     </span>
@@ -148,10 +148,11 @@ export default function BookPageThumbnails({
           })}
           <button
             onClick={onAddPage}
-            className="w-16 h-20 flex items-center justify-center rounded border-2 border-dashed border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/50 transition-colors shrink-0"
-            title="Add Page"
+            className="w-20 h-24 flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-primary/50 bg-primary/5 hover:border-primary hover:bg-primary/10 transition-all shrink-0 group"
+            title="Add New Page"
           >
-            <span className="text-2xl text-muted-foreground">+</span>
+            <span className="text-3xl text-primary mb-1 group-hover:scale-110 transition-transform">+</span>
+            <span className="text-[10px] font-medium text-primary">Add Page</span>
           </button>
         </div>
       </div>
@@ -163,7 +164,7 @@ export default function BookPageThumbnails({
         onClick={scrollRight}
         className="h-full rounded-none border-l shrink-0"
       >
-        <ChevronRight className="h-4 w-4" />
+        <ChevronRight className="h-5 w-5" />
       </Button>
 
       {/* Page Navigation */}
@@ -178,7 +179,7 @@ export default function BookPageThumbnails({
           <ChevronLeft className="h-4 w-4" />
           Prev
         </Button>
-        <span className="text-sm text-muted-foreground min-w-[60px] text-center">
+        <span className="text-sm font-medium min-w-[60px] text-center">
           {currentPage} / {maxPage}
         </span>
         <Button

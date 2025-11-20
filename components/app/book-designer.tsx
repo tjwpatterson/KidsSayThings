@@ -18,6 +18,7 @@ import BookLeftSidebar from "./book-left-sidebar"
 import BookSidebarContent from "./book-sidebar-content"
 import BookCanvas from "./book-canvas"
 import BookPageThumbnails from "./book-page-thumbnails"
+import ResizableSidebar from "./resizable-sidebar"
 import { createClient } from "@/lib/supabase/client"
 
 type SidebarTab = "photos" | "quotes" | "theme" | "settings"
@@ -494,19 +495,21 @@ export default function BookDesigner({
             onTabChange={setActiveSidebarTab}
           />
 
-          {/* Sidebar Content Panel */}
-          <BookSidebarContent
-            activeTab={activeSidebarTab}
-            quotes={quotes}
-            photos={photos}
-            persons={initialPersons}
-            book={book}
-            bookId={book.id}
-            selectedPersonFilter={selectedPersonFilter}
-            onPersonFilterChange={setSelectedPersonFilter}
-            onPhotosUploaded={handlePhotosUploaded}
-            onBookUpdate={handleBookUpdate}
-          />
+          {/* Sidebar Content Panel - Resizable */}
+          <ResizableSidebar defaultWidth={320} minWidth={200} maxWidth={600}>
+            <BookSidebarContent
+              activeTab={activeSidebarTab}
+              quotes={quotes}
+              photos={photos}
+              persons={initialPersons}
+              book={book}
+              bookId={book.id}
+              selectedPersonFilter={selectedPersonFilter}
+              onPersonFilterChange={setSelectedPersonFilter}
+              onPhotosUploaded={handlePhotosUploaded}
+              onBookUpdate={handleBookUpdate}
+            />
+          </ResizableSidebar>
 
           {/* Center Canvas */}
           <BookCanvas

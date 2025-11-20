@@ -71,6 +71,7 @@ export default function BookPagePreview({
           pageWidth={pageWidth}
           pageHeight={pageHeight}
           onRemoveItem={(itemId) => onRemoveItem("left", itemId)}
+          layoutType="photo"
         />
       </div>
 
@@ -88,6 +89,7 @@ export default function BookPagePreview({
           pageWidth={pageWidth}
           pageHeight={pageHeight}
           onRemoveItem={(itemId) => onRemoveItem("right", itemId)}
+          layoutType="quote"
         />
       </div>
     </div>
@@ -103,6 +105,7 @@ function PageSide({
   pageWidth,
   pageHeight,
   onRemoveItem,
+  layoutType,
 }: {
   side: "left" | "right"
   layout: PageLayout | null
@@ -112,6 +115,7 @@ function PageSide({
   pageWidth: number
   pageHeight: number
   onRemoveItem: (itemId: string) => void
+  layoutType: "photo" | "quote"
 }) {
   // Main drop zone for layout A
   const { setNodeRef: setMainNodeRef, isOver: isMainOver } = useDroppable({
@@ -177,11 +181,13 @@ function PageSide({
             )
           }
         }
+        // Customize message based on layout type
+        const dropMessage = layoutType === "photo" ? "Drop Photo" : "Drop Entry"
         return (
           <DropZone
             nodeRef={setMainNodeRef}
             isOver={isMainOver}
-            message="Drop content here"
+            message={dropMessage}
           />
         )
 
@@ -213,7 +219,7 @@ function PageSide({
                 <DropZone
                   nodeRef={setTopNodeRef}
                   isOver={isTopOver}
-                  message="Drop top content"
+                  message={layoutType === "photo" ? "Drop Photo" : "Drop Entry"}
                 />
               )}
             </div>
@@ -239,7 +245,7 @@ function PageSide({
                 <DropZone
                   nodeRef={setBottomNodeRef}
                   isOver={isBottomOver}
-                  message="Drop bottom content"
+                  message={layoutType === "photo" ? "Drop Photo" : "Drop Entry"}
                 />
               )}
             </div>
@@ -275,7 +281,7 @@ function PageSide({
                 <DropZone
                   nodeRef={setTopNodeRef}
                   isOver={isTopOver}
-                  message="Drop photo or quote"
+                  message="Drop Photo"
                 />
               )}
             </div>
@@ -311,7 +317,7 @@ function PageSide({
                 <DropZone
                   nodeRef={setBottomNodeRef}
                   isOver={isBottomOver}
-                  message="Drop quote or photo"
+                  message="Drop Entry"
                 />
               )}
             </div>

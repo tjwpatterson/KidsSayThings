@@ -34,6 +34,7 @@ export default function BookDesigner({
   book: initialBook,
   initialEntries,
   initialPersons,
+  initialPages,
   initialPhotos,
 }: BookDesignerProps) {
   const router = useRouter()

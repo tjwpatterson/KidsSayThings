@@ -93,11 +93,12 @@ export default function QuoteGrid({ householdId, personId }: QuoteGridProps) {
     }
 
     loadEntries()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     householdId,
     personId,
-    dateRange.start ? dateRange.start.toISOString() : null,
-    dateRange.end ? dateRange.end.toISOString() : null,
+    dateRange.start?.getTime(),
+    dateRange.end?.getTime(),
   ])
 
   if (!personId) {

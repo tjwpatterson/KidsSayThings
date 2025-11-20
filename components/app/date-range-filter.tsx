@@ -52,15 +52,33 @@ export default function DateRangeFilter({ value, onChange }: DateRangeFilterProp
   }
 
   const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const dateStr = e.target.value
-    const date = dateStr ? new Date(dateStr + "T00:00:00") : null
-    onChange({ ...value, start: date })
+    try {
+      const dateStr = e.target.value
+      const date = dateStr ? new Date(dateStr + "T00:00:00") : null
+      if (date && isNaN(date.getTime())) {
+        onChange({ ...value, start: null })
+        return
+      }
+      onChange({ ...value, start: date })
+    } catch (error) {
+      console.error("Error parsing start date:", error)
+      onChange({ ...value, start: null })
+    }
   }
 
   const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const dateStr = e.target.value
-    const date = dateStr ? new Date(dateStr + "T23:59:59") : null
-    onChange({ ...value, end: date })
+    try {
+      const dateStr = e.target.value
+      const date = dateStr ? new Date(dateStr + "T23:59:59") : null
+      if (date && isNaN(date.getTime())) {
+        onChange({ ...value, end: null })
+        return
+      }
+      onChange({ ...value, end: date })
+    } catch (error) {
+      console.error("Error parsing end date:", error)
+      onChange({ ...value, end: null })
+    }
   }
 
   const formatDateRange = () => {

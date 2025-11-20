@@ -31,7 +31,6 @@ export default function QuickAddCard({
   onEntryAdded,
 }: QuickAddCardProps) {
   const [text, setText] = useState("")
-  const [tags, setTags] = useState("")
   const [persons, setPersons] = useState<Person[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingPersons, setLoadingPersons] = useState(true)
@@ -103,14 +102,8 @@ export default function QuickAddCard({
 
       if (!user) throw new Error("Not authenticated")
 
-      // Parse tags
-      const tagArray = tags
-        .split(",")
-        .map((t) => t.trim().toLowerCase())
-        .filter((t) => t.length > 0)
-
       // Create entry
-      const { data: entry, error: entryError } = await supabase
+      const { error: entryError } = await supabase
         .from("entries")
         .insert({
           household_id: householdId,
@@ -121,24 +114,8 @@ export default function QuickAddCard({
           source: "app",
           visibility: "household",
         })
-        .select()
-        .single()
 
       if (entryError) throw entryError
-
-      // Add tags
-      if (tagArray.length > 0 && entry) {
-        const tagInserts = tagArray.map((tag) => ({
-          entry_id: entry.id,
-          tag,
-        }))
-
-        const { error: tagError } = await supabase
-          .from("entry_tags")
-          .insert(tagInserts)
-
-        if (tagError) throw tagError
-      }
 
       toast({
         title: "Quote added!",
@@ -147,7 +124,6 @@ export default function QuickAddCard({
 
       // Reset form
       setText("")
-      setTags("")
 
       // Refresh entries
       if (onEntryAdded) {
@@ -226,20 +202,6 @@ export default function QuickAddCard({
               {text.length}/500
             </div>
           </div>
-        </div>
-
-        {/* Tags - optional */}
-        <div className="space-y-2">
-          <Label htmlFor="tags" className="text-sm font-medium text-muted-foreground">
-            Tags (optional)
-          </Label>
-          <Input
-            id="tags"
-            placeholder="funny, sweet, milestone"
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            disabled={loading}
-          />
         </div>
 
         {/* Submit button */}

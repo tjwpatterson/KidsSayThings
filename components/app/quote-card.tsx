@@ -2,13 +2,12 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { TagChip } from "@/components/app/tag-chip"
 import { format } from "date-fns"
 import { getPersonColor } from "@/lib/utils"
 import type { Entry, Person } from "@/lib/types"
 
 interface QuoteCardProps {
-  entry: Entry & { tags?: string[] }
+  entry: Entry
   person: Person | null
   index?: number
 }
@@ -39,13 +38,6 @@ export default function QuoteCard({ entry, person, index = 0 }: QuoteCardProps) 
               >
                 {person.display_name}
               </Badge>
-            )}
-            {entry.tags && entry.tags.length > 0 && (
-              <>
-                {entry.tags.map((tag) => (
-                  <TagChip key={tag} tag={tag} />
-                ))}
-              </>
             )}
             <span className="ml-auto text-xs text-muted-foreground">
               {format(new Date(entry.entry_date), "MMM d, yyyy")}

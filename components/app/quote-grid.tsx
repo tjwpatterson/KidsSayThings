@@ -66,24 +66,7 @@ export default function QuoteGrid({ householdId, personId }: QuoteGridProps) {
         })
         setPersons(personsMap)
 
-        // Load tags for entries
-        if (entriesData && entriesData.length > 0) {
-          const entryIds = entriesData.map((e) => e.id)
-          const { data: tagsData } = await supabase
-            .from("entry_tags")
-            .select("*")
-            .in("entry_id", entryIds)
-
-          // Attach tags to entries
-          const entriesWithTags = entriesData.map((entry) => ({
-            ...entry,
-            tags: tagsData?.filter((t) => t.entry_id === entry.id).map((t) => t.tag) || [],
-          }))
-
-          setEntries(entriesWithTags as any)
-        } else {
-          setEntries([])
-        }
+        setEntries(entriesData || [])
       } catch (error: any) {
         console.error("Error loading entries:", error)
         setEntries([])

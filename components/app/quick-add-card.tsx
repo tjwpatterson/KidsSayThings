@@ -12,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 import { Send, Image, Mic } from "lucide-react"
 import type { Person } from "@/lib/types"

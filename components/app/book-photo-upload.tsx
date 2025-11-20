@@ -102,8 +102,14 @@ export default function BookPhotoUpload({
             })
 
           if (uploadError) {
-            console.error(`Upload error for ${file.name}:`, uploadError)
-            failedUploads.push(`${file.name}: ${uploadError.message}`)
+            console.error(`Storage upload error for ${file.name}:`, uploadError)
+            // Check if it's a storage policy error
+            if (uploadError.message.includes("new row violates row-level security") || uploadError.message.includes("policy")) {
+              // This shouldn't happen with storage, but if it does, it's a bucket policy issue
+              failedUploads.push(`${file.name}: Storage access denied. Please check bucket permissions.`)
+            } else {
+              failedUploads.push(`${file.name}: ${uploadError.message}`)
+            }
             continue
           }
 
@@ -111,6 +117,11 @@ export default function BookPhotoUpload({
           const {
             data: { publicUrl },
           } = supabase.storage.from("attachments").getPublicUrl(filePath)
+
+          if (!publicUrl) {
+            failedUploads.push(`${file.name}: Failed to get public URL`)
+            continue
+          }
 
           // Save photo metadata to database via API
           const res = await fetch(`/api/books/${bookId}/photos`, {
@@ -123,13 +134,23 @@ export default function BookPhotoUpload({
           })
 
           if (!res.ok) {
-            const error = await res.json()
-            throw new Error(error.error || "Failed to save photo metadata")
+            let errorMessage = "Failed to save photo metadata"
+            try {
+              const error = await res.json()
+              errorMessage = error.error || errorMessage
+            } catch (e) {
+              errorMessage = res.statusText || errorMessage
+            }
+            console.error(`API error for ${file.name}:`, errorMessage)
+            failedUploads.push(`${file.name}: ${errorMessage}`)
+            continue
           }
 
           const data = await res.json()
           if (data.photo) {
             uploadedPhotos.push(data.photo)
+          } else {
+            failedUploads.push(`${file.name}: No photo data returned from API`)
           }
         } catch (error: any) {
           console.error(`Error uploading ${file.name}:`, error)

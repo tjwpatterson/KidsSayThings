@@ -64,6 +64,35 @@ export default function BookDesigner({
     }
   }, [pages.length, currentPage])
 
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle if not typing in an input/textarea
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return
+      }
+
+      if (e.key === "ArrowLeft" && e.ctrlKey) {
+        e.preventDefault()
+        if (currentPage > 1) {
+          setCurrentPage(currentPage - 1)
+        }
+      } else if (e.key === "ArrowRight" && e.ctrlKey) {
+        e.preventDefault()
+        const maxPage = Math.max(pages.length, currentPage, 1)
+        if (currentPage < maxPage) {
+          setCurrentPage(currentPage + 1)
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [currentPage, pages.length])
+
   // Get used item IDs from all pages
   const getUsedItemIds = () => {
     const usedPhotoIds = new Set<string>()

@@ -54,22 +54,20 @@ export default async function BookDesignPage({
     .eq("household_id", household.id)
     .order("display_name", { ascending: true })
 
-  // Fetch existing book pages if in manual mode
+  // Fetch existing book pages
   let pages: BookPage[] = []
-  if (book.design_mode === "manual") {
-    const { data: pagesData, error: pagesError } = await supabase
-      .from("book_pages")
-      .select("*")
-      .eq("book_id", id)
-      .order("page_number", { ascending: true })
+  const { data: pagesData, error: pagesError } = await supabase
+    .from("book_pages")
+    .select("*")
+    .eq("book_id", id)
+    .order("page_number", { ascending: true })
 
-    if (!pagesError && pagesData) {
-      pages = pagesData.map((page) => ({
-        ...page,
-        left_content: (page.left_content as any) || [],
-        right_content: (page.right_content as any) || [],
-      })) as BookPage[]
-    }
+  if (!pagesError && pagesData) {
+    pages = pagesData.map((page) => ({
+      ...page,
+      left_content: (page.left_content as any) || [],
+      right_content: (page.right_content as any) || [],
+    })) as BookPage[]
   }
 
   // Fetch book photos

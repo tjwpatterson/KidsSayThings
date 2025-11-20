@@ -13,15 +13,14 @@ import type {
   PageContentItem,
 } from "@/lib/types"
 import { useToast } from "@/components/ui/use-toast"
-import BookPhotoCarousel from "./book-photo-carousel"
-import BookQuoteCarousel from "./book-quote-carousel"
-import BookPagePreview from "./book-page-preview"
-import BookLayoutSelector from "./book-layout-selector"
-import BookThemeSelector from "./book-theme-selector"
+import BookToolbar from "./book-toolbar"
+import BookSettingsSidebar from "./book-settings-sidebar"
+import BookAssetsSidebar from "./book-assets-sidebar"
+import BookCanvas from "./book-canvas"
 import BookPageNavigation from "./book-page-navigation"
-import BookPhotoUpload from "./book-photo-upload"
 import { Button } from "@/components/ui/button"
-import { Save, Eye, Grid, Check } from "lucide-react"
+import { Check } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 
 interface BookDesignerProps {
   book: Book
@@ -32,27 +31,35 @@ interface BookDesignerProps {
 }
 
 export default function BookDesigner({
-  book,
+  book: initialBook,
   initialEntries,
   initialPersons,
   initialPhotos,
 }: BookDesignerProps) {
   const router = useRouter()
   const { toast } = useToast()
+  const supabase = createClient()
 
   // State management
+  const [book, setBook] = useState<Book>(initialBook)
   const [currentPage, setCurrentPage] = useState(1)
-  const [pages, setPages] = useState<BookPage[]>([])
+  const [pages, setPages] = useState<BookPage[]>(initialPages)
   const [allPhotos, setAllPhotos] = useState<BookPhoto[]>(initialPhotos)
   const [allQuotes, setAllQuotes] = useState<Entry[]>(initialEntries)
-  const [selectedPersonFilter, setSelectedPersonFilter] = useState<string>("all")
-  const [selectedTheme, setSelectedTheme] = useState<string>(book.theme)
   const [leftLayout, setLeftLayout] = useState<PageLayout | null>(null)
   const [rightLayout, setRightLayout] = useState<PageLayout | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null)
+
+  // Initialize current page when pages change
+  useEffect(() => {
+    if (pages.length > 0 && currentPage > pages.length) {
+      setCurrentPage(pages.length)
+    } else if (pages.length === 0) {
+      setCurrentPage(1)
+    }
+  }, [pages.length, currentPage])
 
   // Get used item IDs from all pages
   const getUsedItemIds = () => {
@@ -77,10 +84,6 @@ export default function BookDesigner({
   const { usedPhotoIds, usedQuoteIds } = getUsedItemIds()
   const photos = allPhotos.filter((p) => !usedPhotoIds.has(p.id))
   const quotes = allQuotes.filter((q) => !usedQuoteIds.has(q.id))
-  const filteredQuotes =
-    selectedPersonFilter === "all"
-      ? quotes
-      : quotes.filter((q) => q.said_by === selectedPersonFilter)
 
   // Get current page data
   const currentPageData = pages.find((p) => p.page_number === currentPage)
@@ -96,12 +99,33 @@ export default function BookDesigner({
     }
   }, [currentPageData, currentPage])
 
-  // Update filtered quotes when filter or quotes change
-  useEffect(() => {
-    // Filtered quotes are now computed in the render, no need for separate state
-  }, [selectedPersonFilter, quotes])
+  // Update book properties
+  const handleBookUpdate = useCallback(async (updates: Partial<Book>) => {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/books/${book.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      })
 
-  // Auto-save function
+      if (!res.ok) throw new Error("Failed to update book")
+
+      const updatedBook = await res.json()
+      setBook(updatedBook)
+    } catch (error: any) {
+      console.error("Update error:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update book",
+        variant: "destructive",
+      })
+    } finally {
+      setSaving(false)
+    }
+  }, [book.id, toast])
+
+  // Auto-save page function
   const savePage = useCallback(async () => {
     if (!currentPageData && !leftLayout && !rightLayout) {
       return // Don't save empty pages
@@ -141,15 +165,10 @@ export default function BookDesigner({
       })
     } catch (error: any) {
       console.error("Save error:", error)
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save page",
-        variant: "destructive",
-      })
     } finally {
       setSaving(false)
     }
-  }, [currentPage, leftLayout, rightLayout, currentPageData, book.id, toast])
+  }, [currentPage, leftLayout, rightLayout, currentPageData, book.id])
 
   // Debounced auto-save
   useEffect(() => {
@@ -170,6 +189,38 @@ export default function BookDesigner({
     }
   }, [leftLayout, rightLayout, currentPage, savePage])
 
+  // Auto-generate book
+  const handleAutoGenerate = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/books/${book.id}/render`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.message || "Failed to generate book")
+      }
+
+      // Reload pages after generation
+      const { data: pagesData } = await supabase
+        .from("book_pages")
+        .select("*")
+        .eq("book_id", book.id)
+        .order("page_number", { ascending: true })
+
+      if (pagesData) {
+        setPages(pagesData.map((page) => ({
+          ...page,
+          left_content: (page.left_content as any) || [],
+          right_content: (page.right_content as any) || [],
+        })) as BookPage[])
+      }
+    } catch (error: any) {
+      throw error
+    }
+  }, [book.id, supabase])
+
   // Drag handlers
   const handleDragStart = (event: any) => {
     setActiveId(event.active.id)
@@ -184,7 +235,7 @@ export default function BookDesigner({
     const activeId = active.id as string
     const overId = over.id as string
 
-    // Determine if dragging photo or quote (check against all items, not just unused)
+    // Determine if dragging photo or quote
     const isPhoto = allPhotos.some((p) => p.id === activeId)
     const isQuote = allQuotes.some((q) => q.id === activeId)
 
@@ -195,7 +246,6 @@ export default function BookDesigner({
     const isRightPage = overId.includes("right-")
     const isTop = overId.includes("-top")
     const isBottom = overId.includes("-bottom")
-    const isMain = overId.includes("-main") || (!isTop && !isBottom)
 
     if (!isLeftPage && !isRightPage) return
 
@@ -204,7 +254,6 @@ export default function BookDesigner({
 
     // Check layout constraints
     if (isPhoto) {
-      // Photos can go to left page (A, B) or right page (C)
       if (isLeftPage && targetLayout && targetLayout !== "C") {
         // Valid
       } else if (isRightPage && targetLayout === "C") {
@@ -218,7 +267,6 @@ export default function BookDesigner({
         return
       }
     } else if (isQuote) {
-      // Quotes can go to right page (A, B) or left page (C)
       if (isRightPage && targetLayout && targetLayout !== "C") {
         // Valid
       } else if (isLeftPage && targetLayout === "C") {
@@ -245,24 +293,19 @@ export default function BookDesigner({
         const updated = { ...existing }
         const content = targetSide === "left" ? updated.left_content : updated.right_content
 
-        // For layout A, replace if exists, otherwise add
-        // For layout B/C, add to appropriate position
         if (targetLayout === "A") {
-          // Replace single item
           if (targetSide === "left") {
             updated.left_content = [contentItem]
           } else {
             updated.right_content = [contentItem]
           }
         } else if (targetLayout === "B") {
-          // Add to top or bottom position
           const newContent = [...(content || [])]
           if (isTop) {
             newContent[0] = contentItem
           } else if (isBottom) {
             newContent[1] = contentItem
           } else {
-            // Default to adding at end
             newContent.push(contentItem)
           }
           if (targetSide === "left") {
@@ -271,16 +314,13 @@ export default function BookDesigner({
             updated.right_content = newContent
           }
         } else if (targetLayout === "C") {
-          // Add to top or bottom position
           const newContent = [...(content || [])]
           if (isTop) {
-            // Find and replace top item (photo preferred) or add
             const topIndex = newContent.findIndex((c) => c.type === "photo") >= 0
               ? newContent.findIndex((c) => c.type === "photo")
               : 0
             newContent[topIndex] = contentItem
           } else if (isBottom) {
-            // Find and replace bottom item (quote preferred) or add
             const bottomIndex = newContent.findIndex((c) => c.type === "quote") >= 0
               ? newContent.findIndex((c) => c.type === "quote")
               : newContent.length
@@ -323,14 +363,13 @@ export default function BookDesigner({
   // Photo upload handler
   const handlePhotosUploaded = (newPhotos: BookPhoto[]) => {
     setAllPhotos((prev) => [...newPhotos, ...prev])
-    setIsUploadModalOpen(false)
     toast({
       title: "Photos uploaded",
       description: `${newPhotos.length} photo(s) added`,
     })
   }
 
-  // Remove item from page and restore to carousel
+  // Remove item from page
   const handleRemoveItem = (side: "left" | "right", itemId: string) => {
     setPages((prev) => {
       const existing = prev.find((p) => p.page_number === currentPage)
@@ -350,23 +389,6 @@ export default function BookDesigner({
       return prev.map((p) => (p.page_number === currentPage ? updated : p))
     })
 
-    // Find the item to restore
-    const removedItem = pages
-      .find((p) => p.page_number === currentPage)
-      ?.left_content?.find((item) => item.id === itemId) ||
-      pages
-        .find((p) => p.page_number === currentPage)
-        ?.right_content?.find((item) => item.id === itemId)
-
-    if (removedItem) {
-      if (removedItem.type === "photo") {
-        // Photo will be restored automatically when removed from usedPhotoIds
-      } else {
-        // Quote will be restored automatically when removed from usedQuoteIds
-      }
-    }
-
-    // Trigger save
     setTimeout(() => savePage(), 100)
   }
 
@@ -424,136 +446,64 @@ export default function BookDesigner({
       onDragEnd={handleDragEnd}
     >
       <div className="flex flex-col h-full">
-        {/* Top ribbon - Theme selector */}
-        <div className="border-b bg-background p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <BookThemeSelector
-                selectedTheme={selectedTheme}
-                onThemeChange={setSelectedTheme}
-              />
-            </div>
-            <div className="flex gap-2">
-              {saving && (
-                <span className="text-sm text-muted-foreground flex items-center gap-2">
-                  <Save className="h-4 w-4 animate-spin" />
-                  Saving...
-                </span>
-              )}
-              <Button variant="outline" size="sm">
-                <Eye className="h-4 w-4 mr-2" />
-                Preview
-              </Button>
-              <Button variant="outline" size="sm">
-                <Grid className="h-4 w-4 mr-2" />
-                Arrange Pages
-              </Button>
-              <Button onClick={handleFinalize} size="sm">
-                <Check className="h-4 w-4 mr-2" />
-                Finalize
-              </Button>
-            </div>
-          </div>
-        </div>
+        {/* Top Toolbar */}
+        <BookToolbar
+          book={book}
+          onUpdate={handleBookUpdate}
+          onAutoGenerate={handleAutoGenerate}
+          saving={saving}
+        />
 
-        {/* Main content area */}
+        {/* Main Content Area */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Left sidebar - Photo carousel */}
-          <div className="w-64 border-r bg-muted/30 flex flex-col">
-            <div className="p-4 border-b">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold">Photos</h3>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsUploadModalOpen(true)}
-                >
-                  Upload
-                </Button>
-              </div>
-            </div>
-            <BookPhotoCarousel photos={photos} />
-          </div>
+          {/* Left Sidebar - Settings */}
+          <BookSettingsSidebar
+            book={book}
+            onUpdate={handleBookUpdate}
+          />
 
-          {/* Center - Two-page spread preview */}
-          <div className="flex-1 overflow-auto p-8 bg-muted/10">
-            <div className="max-w-5xl mx-auto">
-              <div className="flex gap-4 mb-6">
-                {/* Left page layout selector */}
-                <div className="flex-1">
-                  <div className="mb-2 text-sm font-medium">Left Page Layout</div>
-                  <BookLayoutSelector
-                    selected={leftLayout}
-                    onSelect={setLeftLayout}
-                    type="photo"
-                  />
-                </div>
-                {/* Right page layout selector */}
-                <div className="flex-1">
-                  <div className="mb-2 text-sm font-medium">Right Page Layout</div>
-                  <BookLayoutSelector
-                    selected={rightLayout}
-                    onSelect={setRightLayout}
-                    type="quote"
-                  />
-                </div>
-              </div>
+          {/* Center Canvas */}
+          <BookCanvas
+            book={book}
+            currentPage={currentPageData}
+            leftLayout={leftLayout}
+            rightLayout={rightLayout}
+            photos={allPhotos}
+            quotes={allQuotes}
+            persons={initialPersons}
+            onLeftLayoutChange={setLeftLayout}
+            onRightLayoutChange={setRightLayout}
+            onRemoveItem={handleRemoveItem}
+          />
 
-              <BookPagePreview
-                book={book}
-                page={currentPageData}
-                leftLayout={leftLayout}
-                rightLayout={rightLayout}
-                photos={allPhotos}
-                quotes={allQuotes}
-                persons={initialPersons}
-                onRemoveItem={handleRemoveItem}
-              />
-            </div>
-          </div>
-
-          {/* Right sidebar - Quote carousel */}
-          <div className="w-64 border-l bg-muted/30 flex flex-col">
-            <div className="p-4 border-b">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold">Quotes</h3>
-              </div>
-              <select
-                value={selectedPersonFilter}
-                onChange={(e) => setSelectedPersonFilter(e.target.value)}
-                className="w-full px-3 py-1.5 text-sm border rounded-md bg-background"
-              >
-                <option value="all">All People</option>
-                {initialPersons.map((person) => (
-                  <option key={person.id} value={person.id}>
-                    {person.display_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <BookQuoteCarousel quotes={filteredQuotes} persons={initialPersons} />
-          </div>
+          {/* Right Sidebar - Assets */}
+          <BookAssetsSidebar
+            quotes={quotes}
+            photos={photos}
+            persons={initialPersons}
+            bookId={book.id}
+            onPhotosUploaded={handlePhotosUploaded}
+          />
         </div>
 
-        {/* Bottom - Page navigation */}
-        <div className="border-t bg-background p-4">
-          <BookPageNavigation
-            currentPage={currentPage}
-            totalPages={pages.length || 1}
-            onPageChange={setCurrentPage}
-            onAddPage={() => setCurrentPage((pages.length || 0) + 1)}
-          />
+        {/* Bottom Bar - Page Navigation */}
+        <div className="border-t bg-background px-6 py-3">
+          <div className="flex items-center justify-between">
+            <BookPageNavigation
+              currentPage={currentPage}
+              totalPages={pages.length || 1}
+              onPageChange={setCurrentPage}
+              onAddPage={() => setCurrentPage((pages.length || 0) + 1)}
+            />
+            <Button onClick={handleFinalize} size="sm" className="gap-2">
+              <Check className="h-4 w-4" />
+              Finalize Book
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Photo upload modal */}
-      <BookPhotoUpload
-        bookId={book.id}
-        isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
-        onUploaded={handlePhotosUploaded}
-      />
-
+      {/* Drag Overlay */}
       <DragOverlay>
         {activeId ? (
           <div className="bg-white p-2 rounded shadow-lg border">
@@ -574,4 +524,3 @@ export default function BookDesigner({
     </DndContext>
   )
 }
-

@@ -46,6 +46,12 @@ export async function PATCH(
     if (body.status !== undefined) updateData.status = body.status
     if (body.design_mode !== undefined) updateData.design_mode = body.design_mode
     if (body.theme !== undefined) updateData.theme = body.theme
+    if (body.title !== undefined) updateData.title = body.title
+    if (body.date_start !== undefined) updateData.date_start = body.date_start
+    if (body.date_end !== undefined) updateData.date_end = body.date_end
+    if (body.size !== undefined) updateData.size = body.size
+    if (body.cover_style !== undefined) updateData.cover_style = body.cover_style
+    if (body.dedication !== undefined) updateData.dedication = body.dedication
 
     const { data: updatedBook, error: updateError } = await supabase
       .from("books")

@@ -25,13 +25,53 @@ export default function BookCanvas({
   photos,
   quotes,
   persons,
+  totalPages,
   onLeftLayoutChange,
   onRightLayoutChange,
   onRemoveItem,
 }: BookCanvasProps) {
+  // Determine page type labels
+  const currentPageNumber = currentPage?.page_number || 1
+  const getPageLabel = (pageNumber: number) => {
+    if (pageNumber === 1) {
+      return { left: "Front Cover", right: "Title Page" }
+    }
+    // Last page is back cover
+    if (pageNumber === totalPages) {
+      return { left: null, right: "Back Cover" }
+    }
+    // Page 2 could be title/intro page continuation
+    if (pageNumber === 2) {
+      return { left: null, right: "Intro Page" }
+    }
+    return { left: null, right: null }
+  }
+
+  const pageLabel = getPageLabel(currentPageNumber)
+
   return (
-    <div className="flex-1 overflow-auto p-8 bg-muted/10">
-      <div className="max-w-5xl mx-auto">
+    <div className="flex-1 overflow-auto bg-muted/10 flex items-center justify-center p-8">
+      <div className="w-full max-w-6xl">
+        {/* Page Type Labels */}
+        {(pageLabel.left || pageLabel.right) && (
+          <div className="flex gap-4 mb-4">
+            <div className="flex-1 flex items-center justify-center">
+              {pageLabel.left && (
+                <div className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-semibold">
+                  {pageLabel.left}
+                </div>
+              )}
+            </div>
+            <div className="flex-1 flex items-center justify-center">
+              {pageLabel.right && (
+                <div className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-semibold">
+                  {pageLabel.right}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Layout Selectors */}
         <div className="flex gap-4 mb-6">
           {/* Left Page Layout */}
@@ -60,16 +100,18 @@ export default function BookCanvas({
         </div>
 
         {/* Two-Page Spread Preview */}
-        <BookPagePreview
-          book={book}
-          page={currentPage}
-          leftLayout={leftLayout}
-          rightLayout={rightLayout}
-          photos={photos}
-          quotes={quotes}
-          persons={persons}
-          onRemoveItem={onRemoveItem}
-        />
+        <div className="flex justify-center">
+          <BookPagePreview
+            book={book}
+            page={currentPage}
+            leftLayout={leftLayout}
+            rightLayout={rightLayout}
+            photos={photos}
+            quotes={quotes}
+            persons={persons}
+            onRemoveItem={onRemoveItem}
+          />
+        </div>
       </div>
     </div>
   )

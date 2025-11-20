@@ -517,6 +517,7 @@ export default function BookDesigner({
             photos={allPhotos}
             quotes={allQuotes}
             persons={initialPersons}
+            totalPages={Math.max(pages.length, currentPage, 1)}
             onLeftLayoutChange={setLeftLayout}
             onRightLayoutChange={setRightLayout}
             onRemoveItem={handleRemoveItem}

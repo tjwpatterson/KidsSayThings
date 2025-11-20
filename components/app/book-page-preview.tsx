@@ -35,10 +35,12 @@ export default function BookPagePreview({
   onRemoveItem,
 }: BookPagePreviewProps) {
   // Calculate page dimensions (6"w x 9"h scaled)
-  const aspectRatio = 6 / 9
-  const maxWidth = 800
-  const pageWidth = maxWidth
-  const pageHeight = maxWidth / aspectRatio
+  // For 6x9 book: width=6, height=9, so aspect ratio is 6:9 = 2:3
+  // We want to scale to fit nicely on screen while maintaining proportions
+  const bookAspectRatio = 6 / 9 // width/height = 0.667
+  const maxDisplayWidth = 600 // Max width for a single page
+  const pageWidth = maxDisplayWidth
+  const pageHeight = pageWidth / bookAspectRatio // Should be ~900px for 600px width
 
   const getPersonName = (personId: string | null) => {
     if (!personId) return null
@@ -54,11 +56,11 @@ export default function BookPagePreview({
   }
 
   return (
-    <div className="flex gap-4">
+    <div className="flex gap-6 items-start">
       {/* Left Page */}
       <div
-        className="flex-1 bg-white shadow-lg rounded"
-        style={{ width: pageWidth, height: pageHeight }}
+        className="bg-white shadow-xl rounded-lg border-2 border-border shrink-0"
+        style={{ width: `${pageWidth}px`, height: `${pageHeight}px` }}
       >
         <PageSide
           side="left"
@@ -74,8 +76,8 @@ export default function BookPagePreview({
 
       {/* Right Page */}
       <div
-        className="flex-1 bg-white shadow-lg rounded"
-        style={{ width: pageWidth, height: pageHeight }}
+        className="bg-white shadow-xl rounded-lg border-2 border-border shrink-0"
+        style={{ width: `${pageWidth}px`, height: `${pageHeight}px` }}
       >
         <PageSide
           side="right"

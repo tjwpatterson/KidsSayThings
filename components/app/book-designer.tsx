@@ -14,13 +14,13 @@ import type {
 } from "@/lib/types"
 import { useToast } from "@/components/ui/use-toast"
 import BookToolbar from "./book-toolbar"
-import BookSettingsSidebar from "./book-settings-sidebar"
-import BookAssetsSidebar from "./book-assets-sidebar"
+import BookLeftSidebar from "./book-left-sidebar"
+import BookSidebarContent from "./book-sidebar-content"
 import BookCanvas from "./book-canvas"
-import BookPageNavigation from "./book-page-navigation"
-import { Button } from "@/components/ui/button"
-import { Check } from "lucide-react"
+import BookPageThumbnails from "./book-page-thumbnails"
 import { createClient } from "@/lib/supabase/client"
+
+type SidebarTab = "photos" | "quotes" | "theme" | "settings"
 
 interface BookDesignerProps {
   book: Book
@@ -52,6 +52,8 @@ export default function BookDesigner({
   const [activeId, setActiveId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab>("photos")
+  const [selectedPersonFilter, setSelectedPersonFilter] = useState<string>("all")
 
   // Initialize current page when pages change
   useEffect(() => {
@@ -457,10 +459,24 @@ export default function BookDesigner({
 
         {/* Main Content Area */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Left Sidebar - Settings */}
-          <BookSettingsSidebar
+          {/* Left Sidebar - Icon Menu */}
+          <BookLeftSidebar
+            activeTab={activeSidebarTab}
+            onTabChange={setActiveSidebarTab}
+          />
+
+          {/* Sidebar Content Panel */}
+          <BookSidebarContent
+            activeTab={activeSidebarTab}
+            quotes={quotes}
+            photos={photos}
+            persons={initialPersons}
             book={book}
-            onUpdate={handleBookUpdate}
+            bookId={book.id}
+            selectedPersonFilter={selectedPersonFilter}
+            onPersonFilterChange={setSelectedPersonFilter}
+            onPhotosUploaded={handlePhotosUploaded}
+            onBookUpdate={handleBookUpdate}
           />
 
           {/* Center Canvas */}
@@ -476,32 +492,15 @@ export default function BookDesigner({
             onRightLayoutChange={setRightLayout}
             onRemoveItem={handleRemoveItem}
           />
-
-          {/* Right Sidebar - Assets */}
-          <BookAssetsSidebar
-            quotes={quotes}
-            photos={photos}
-            persons={initialPersons}
-            bookId={book.id}
-            onPhotosUploaded={handlePhotosUploaded}
-          />
         </div>
 
-        {/* Bottom Bar - Page Navigation */}
-        <div className="border-t bg-background px-6 py-3">
-          <div className="flex items-center justify-between">
-            <BookPageNavigation
-              currentPage={currentPage}
-              totalPages={pages.length || 1}
-              onPageChange={setCurrentPage}
-              onAddPage={() => setCurrentPage((pages.length || 0) + 1)}
-            />
-            <Button onClick={handleFinalize} size="sm" className="gap-2">
-              <Check className="h-4 w-4" />
-              Finalize Book
-            </Button>
-          </div>
-        </div>
+        {/* Bottom Bar - Page Thumbnails */}
+        <BookPageThumbnails
+          pages={pages}
+          currentPage={currentPage}
+          onPageSelect={setCurrentPage}
+          onAddPage={() => setCurrentPage((pages.length || 0) + 1)}
+        />
       </div>
 
       {/* Drag Overlay */}

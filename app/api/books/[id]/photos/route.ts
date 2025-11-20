@@ -133,7 +133,11 @@ export async function POST(
 
       if (uploadError) {
         console.error("Upload error:", uploadError)
-        continue
+        // Return more detailed error
+        return NextResponse.json(
+          { error: `Failed to upload ${file.name}: ${uploadError.message}` },
+          { status: 500 }
+        )
       }
 
       // Get public URL
@@ -159,7 +163,11 @@ export async function POST(
 
       if (photoError) {
         console.error("Photo insert error:", photoError)
-        continue
+        // Return more detailed error
+        return NextResponse.json(
+          { error: `Failed to save photo ${file.name}: ${photoError.message}` },
+          { status: 500 }
+        )
       }
 
       uploadedPhotos.push(photo)

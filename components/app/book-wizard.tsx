@@ -31,7 +31,7 @@ export default function BookWizard({ householdId }: BookWizardProps) {
     date_start: "",
     date_end: "",
     title: "",
-    size: "6x9" as "6x9" | "8x10",
+    size: "6x9" as "6x9" | "digital",
     theme: "classic" as "classic" | "playful",
     cover_style: "linen" as "linen" | "solid" | "gradient",
     dedication: "",
@@ -182,7 +182,7 @@ export default function BookWizard({ householdId }: BookWizardProps) {
               <Label htmlFor="size">Book Size</Label>
               <Select
                 value={formData.size}
-                onValueChange={(value: "6x9" | "8x10") =>
+                onValueChange={(value: "6x9" | "digital") =>
                   setFormData({ ...formData, size: value })
                 }
               >
@@ -191,7 +191,7 @@ export default function BookWizard({ householdId }: BookWizardProps) {
                 </SelectTrigger>
                 <SelectContent>
                 <SelectItem value="6x9">6&quot; x 9&quot;</SelectItem>
-                <SelectItem value="8x10">8&quot; x 10&quot;</SelectItem>
+                <SelectItem value="digital">Digital Book</SelectItem>
                 </SelectContent>
               </Select>
             </div>

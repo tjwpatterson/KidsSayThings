@@ -1,7 +1,7 @@
 export type EntryType = "quote" | "note" | "milestone"
 export type EntrySource = "app" | "sms" | "import"
 export type EntryVisibility = "household" | "private"
-export type BookSize = "6x9" | "8x10"
+export type BookSize = "6x9" | "digital"
 export type BookTheme = "classic" | "playful"
 export type BookCoverStyle = "linen" | "solid" | "gradient"
 export type BookStatus = "draft" | "rendering" | "ready" | "error"

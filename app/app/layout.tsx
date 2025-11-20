@@ -17,12 +17,13 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex h-screen flex-col overflow-hidden">
       <AppNav />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 overflow-hidden">{children}</main>
     </div>
   )
 }
+
 
 
 

@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/button"
-import { Home, Users, BookOpen, Settings } from "lucide-react"
+import { FileText, BookOpen, Settings } from "lucide-react"
 import SignOutButton from "@/components/app/sign-out-button"
 
 export default async function AppNav() {
@@ -19,14 +19,8 @@ export default async function AppNav() {
         <div className="flex items-center gap-4">
           <Link href="/app">
             <Button variant="ghost" size="sm">
-              <Home className="h-4 w-4 mr-2" />
-              Home
-            </Button>
-          </Link>
-          <Link href="/app/people">
-            <Button variant="ghost" size="sm">
-              <Users className="h-4 w-4 mr-2" />
-              People
+              <FileText className="h-4 w-4 mr-2" />
+              Entries
             </Button>
           </Link>
           <Link href="/app/books">

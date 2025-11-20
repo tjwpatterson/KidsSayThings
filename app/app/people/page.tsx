@@ -1,39 +1,10 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
-import { getCurrentHousehold } from "@/lib/household"
-import PeopleList from "@/components/app/people-list"
 
 export default async function PeoplePage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/login")
-  }
-
-  const household = await getCurrentHousehold()
-
-  if (!household) {
-    redirect("/app/onboarding")
-  }
-
-  return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <div className="mb-8 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-serif font-bold mb-2">People</h1>
-          <p className="text-muted-foreground">
-            Manage the people in your household.
-          </p>
-        </div>
-      </div>
-
-      <PeopleList householdId={household.id} />
-    </div>
-  )
+  // Redirect to entries page (home) since people are now managed in the sidebar
+  redirect("/app")
 }
+
 
 
 

@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent } from "@/components/ui/card"
 import {
   Select,
   SelectContent,
@@ -15,17 +14,25 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
-import { Image, Mic, X } from "lucide-react"
+import { Send, Image, Mic } from "lucide-react"
 import type { Person } from "@/lib/types"
+import { motion } from "framer-motion"
 
 interface QuickAddCardProps {
   householdId: string
+  selectedPersonId: string | null
+  onPersonSelect: (personId: string | null) => void
+  onEntryAdded?: () => void
 }
 
-export default function QuickAddCard({ householdId }: QuickAddCardProps) {
+export default function QuickAddCard({
+  householdId,
+  selectedPersonId,
+  onPersonSelect,
+  onEntryAdded,
+}: QuickAddCardProps) {
   const [text, setText] = useState("")
-  const [selectedPerson, setSelectedPerson] = useState<string>("none")
-  const [tags, setTags] = useState<string>("")
+  const [tags, setTags] = useState("")
   const [persons, setPersons] = useState<Person[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingPersons, setLoadingPersons] = useState(true)
@@ -63,7 +70,16 @@ export default function QuickAddCard({ householdId }: QuickAddCardProps) {
     if (!text.trim()) {
       toast({
         title: "Error",
-        description: "Please enter a quote or note",
+        description: "Please enter a quote",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!selectedPersonId) {
+      toast({
+        title: "Error",
+        description: "Please select who said this quote",
         variant: "destructive",
       })
       return
@@ -98,7 +114,7 @@ export default function QuickAddCard({ householdId }: QuickAddCardProps) {
         .from("entries")
         .insert({
           household_id: householdId,
-          said_by: selectedPerson && selectedPerson !== "none" ? selectedPerson : null,
+          said_by: selectedPersonId,
           captured_by: user.id,
           text: text.trim(),
           entry_type: "quote",
@@ -125,17 +141,20 @@ export default function QuickAddCard({ householdId }: QuickAddCardProps) {
       }
 
       toast({
-        title: "Entry added!",
+        title: "Quote added!",
         description: "Your quote has been saved.",
       })
 
       // Reset form
       setText("")
-      setSelectedPerson("none")
       setTags("")
 
-      // Refresh the page to show new entry
-      window.location.reload()
+      // Refresh entries
+      if (onEntryAdded) {
+        onEntryAdded()
+      } else {
+        window.location.reload()
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -147,90 +166,99 @@ export default function QuickAddCard({ householdId }: QuickAddCardProps) {
     }
   }
 
+  const canSubmit = text.trim().length > 0 && selectedPersonId !== null && !loading
+
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="text">What did they say?</Label>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="border-b pb-6 mb-6"
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Person selector - ChatGPT style */}
+        <div className="space-y-2">
+          <Label htmlFor="person" className="text-sm font-medium">
+            Who said this?
+          </Label>
+          <Select
+            value={selectedPersonId || ""}
+            onValueChange={(value) => onPersonSelect(value || null)}
+            disabled={loading || loadingPersons}
+            required
+          >
+            <SelectTrigger id="person" className="w-full">
+              <SelectValue placeholder="Select a person (required)" />
+            </SelectTrigger>
+            <SelectContent>
+              {persons.length === 0 ? (
+                <SelectItem value="" disabled>
+                  No people added yet
+                </SelectItem>
+              ) : (
+                persons.map((person) => (
+                  <SelectItem key={person.id} value={person.id}>
+                    {person.display_name}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+          {!selectedPersonId && (
+            <p className="text-xs text-muted-foreground">
+              You must select a person to save this quote
+            </p>
+          )}
+        </div>
+
+        {/* Quote input - ChatGPT style */}
+        <div className="space-y-2">
+          <Label htmlFor="text" className="text-sm font-medium">
+            What did they say?
+          </Label>
+          <div className="relative">
             <Textarea
               id="text"
-              placeholder="Enter the quote or memory here..."
+              placeholder="Enter the quote here..."
               value={text}
               onChange={(e) => setText(e.target.value)}
-              rows={3}
+              rows={4}
               maxLength={500}
               disabled={loading}
-              className="resize-none"
+              className="resize-none pr-12"
             />
-            <div className="text-xs text-muted-foreground text-right">
+            <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
               {text.length}/500
             </div>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="person">Who said it?</Label>
-              <Select
-                value={selectedPerson}
-                onValueChange={setSelectedPerson}
-                disabled={loading || loadingPersons}
-              >
-                <SelectTrigger id="person">
-                  <SelectValue placeholder="Select a person" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No one specific</SelectItem>
-                  {persons.map((person) => (
-                    <SelectItem key={person.id} value={person.id}>
-                      {person.display_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        {/* Tags - optional */}
+        <div className="space-y-2">
+          <Label htmlFor="tags" className="text-sm font-medium text-muted-foreground">
+            Tags (optional)
+          </Label>
+          <Input
+            id="tags"
+            placeholder="funny, sweet, milestone"
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
+            disabled={loading}
+          />
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="tags">Tags (comma-separated)</Label>
-              <Input
-                id="tags"
-                placeholder="funny, sweet, milestone"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-between items-center">
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                disabled={loading}
-                title="Add photo (coming soon)"
-              >
-                <Image className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                disabled={loading}
-                title="Add audio (coming soon)"
-              >
-                <Mic className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <Button type="submit" disabled={loading || !text.trim()}>
-              {loading ? "Saving..." : "Save Entry"}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+        {/* Submit button */}
+        <div className="flex justify-end">
+          <Button
+            type="submit"
+            disabled={!canSubmit}
+            className="gap-2"
+          >
+            <Send className="h-4 w-4" />
+            {loading ? "Saving..." : "Save Quote"}
+          </Button>
+        </div>
+      </form>
+    </motion.div>
   )
 }
 

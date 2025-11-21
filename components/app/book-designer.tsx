@@ -174,8 +174,11 @@ export default function BookDesigner({
   }, [book.id, toast])
 
   // Auto-save page function
-  const savePage = useCallback(async () => {
-    if (!currentPageData && !leftLayout && !rightLayout) {
+  const savePage = useCallback(async (pageDataOverride?: { left_content?: PageContentItem[], right_content?: PageContentItem[] }) => {
+    // Get the latest page data from state
+    const latestPageData = pages.find((p) => p.page_number === currentPage)
+    
+    if (!latestPageData && !leftLayout && !rightLayout) {
       return // Don't save empty pages
     }
 
@@ -185,9 +188,11 @@ export default function BookDesigner({
         page_number: currentPage,
         left_layout: leftLayout,
         right_layout: rightLayout,
-        left_content: currentPageData?.left_content || [],
-        right_content: currentPageData?.right_content || [],
+        left_content: pageDataOverride?.left_content ?? latestPageData?.left_content ?? [],
+        right_content: pageDataOverride?.right_content ?? latestPageData?.right_content ?? [],
       }
+
+      console.log("Saving page:", pageData)
 
       const res = await fetch(`/api/books/${book.id}/pages`, {
         method: "POST",
@@ -196,27 +201,35 @@ export default function BookDesigner({
       })
 
       if (!res.ok) {
+        const errorText = await res.text()
+        console.error("Save failed:", errorText)
         throw new Error("Failed to save page")
       }
 
       const savedPage = await res.json()
+      console.log("Page saved successfully:", savedPage)
 
-      // Update local state
+      // Update local state with saved page
       setPages((prev) => {
-        const existing = prev.findIndex((p) => p.page_number === currentPage)
-        if (existing >= 0) {
+        const existingIndex = prev.findIndex((p) => p.page_number === currentPage)
+        if (existingIndex >= 0) {
           const updated = [...prev]
-          updated[existing] = savedPage
+          updated[existingIndex] = savedPage
           return updated
         }
         return [...prev, savedPage]
       })
     } catch (error: any) {
       console.error("Save error:", error)
+      toast({
+        title: "Save failed",
+        description: error.message || "Failed to save page changes",
+        variant: "destructive",
+      })
     } finally {
       setSaving(false)
     }
-  }, [currentPage, leftLayout, rightLayout, currentPageData, book.id])
+  }, [currentPage, leftLayout, rightLayout, pages, book.id, toast])
 
   // Debounced auto-save
   useEffect(() => {

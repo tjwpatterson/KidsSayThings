@@ -208,27 +208,32 @@ export default function BookDesigner({
 
       const savedPage = await res.json()
       console.log("Page saved successfully:", savedPage)
+      console.log("Saved page content:", {
+        left: savedPage.left_content,
+        right: savedPage.right_content,
+        expectedLeft: pageData.left_content,
+        expectedRight: pageData.right_content,
+      })
 
-      // Update local state with saved page - merge to preserve any local changes
+      // Update local state with saved page - use the content we sent, not what came back (in case API has issues)
       setPages((prev) => {
         const existingIndex = prev.findIndex((p) => p.page_number === currentPage)
         if (existingIndex >= 0) {
           const updated = [...prev]
-          // Merge saved page with current state to preserve any local changes
-          const currentPageState = updated[existingIndex]
+          // Use the content we sent to the API, not what came back (defensive)
           updated[existingIndex] = {
             ...savedPage,
-            // Preserve local content if it's more recent (has more items)
-            left_content: (currentPageState.left_content?.length || 0) > (savedPage.left_content?.length || 0)
-              ? currentPageState.left_content
-              : savedPage.left_content,
-            right_content: (currentPageState.right_content?.length || 0) > (savedPage.right_content?.length || 0)
-              ? currentPageState.right_content
-              : savedPage.right_content,
+            left_content: pageData.left_content, // Use what we sent
+            right_content: pageData.right_content, // Use what we sent
           }
+          console.log("Updated page state:", updated[existingIndex])
           return updated
         }
-        return [...prev, savedPage]
+        return [...prev, {
+          ...savedPage,
+          left_content: pageData.left_content,
+          right_content: pageData.right_content,
+        }]
       })
     } catch (error: any) {
       console.error("Save error:", error)

@@ -352,6 +352,10 @@ export default function BookDesigner({
       type: isPhoto ? "photo" : "quote",
     }
 
+    // Calculate updated content before state update to pass to savePage
+    let updatedLeftContent: PageContentItem[] = []
+    let updatedRightContent: PageContentItem[] = []
+
     setPages((prev) => {
       const existing = prev.find((p) => p.page_number === currentPage)
       if (existing) {
@@ -361,8 +365,12 @@ export default function BookDesigner({
         if (targetLayout === "A") {
           if (targetSide === "left") {
             updated.left_content = [contentItem]
+            updatedLeftContent = [contentItem]
+            updatedRightContent = updated.right_content || []
           } else {
             updated.right_content = [contentItem]
+            updatedLeftContent = updated.left_content || []
+            updatedRightContent = [contentItem]
           }
         } else if (targetLayout === "B") {
           const newContent = [...(content || [])]
@@ -375,8 +383,12 @@ export default function BookDesigner({
           }
           if (targetSide === "left") {
             updated.left_content = newContent
+            updatedLeftContent = newContent
+            updatedRightContent = updated.right_content || []
           } else {
             updated.right_content = newContent
+            updatedLeftContent = updated.left_content || []
+            updatedRightContent = newContent
           }
         } else if (targetLayout === "C") {
           const newContent = [...(content || [])]
@@ -399,8 +411,12 @@ export default function BookDesigner({
           }
           if (targetSide === "left") {
             updated.left_content = newContent
+            updatedLeftContent = newContent
+            updatedRightContent = updated.right_content || []
           } else {
             updated.right_content = newContent
+            updatedLeftContent = updated.left_content || []
+            updatedRightContent = newContent
           }
         }
 
@@ -417,12 +433,19 @@ export default function BookDesigner({
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         }
+        updatedLeftContent = newPage.left_content || []
+        updatedRightContent = newPage.right_content || []
         return [...prev, newPage]
       }
     })
 
-    // Trigger save
-    setTimeout(() => savePage(), 100)
+    // Save immediately with the updated content to prevent disappearing
+    setTimeout(() => {
+      savePage({
+        left_content: updatedLeftContent,
+        right_content: updatedRightContent,
+      })
+    }, 100)
   }
 
   // Photo upload handler

@@ -56,6 +56,21 @@ export default function BookDesigner({
   const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab>("photos")
   const [selectedPersonFilter, setSelectedPersonFilter] = useState<string>("all")
 
+  // Configure drag sensors for better drag detection
+  const sensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 8, // 8px of movement before drag starts
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200, // 200ms delay for touch
+        tolerance: 5,
+      },
+    })
+  )
+
   // Initialize current page when pages change
   useEffect(() => {
     if (pages.length > 0 && currentPage > pages.length) {

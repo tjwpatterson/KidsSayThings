@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
 import { getCurrentHousehold } from "@/lib/household"
 import BookDesigner from "@/components/app/book-designer"
 import type { Book, Entry, Person, BookPhoto, BookPage } from "@/lib/types"
@@ -77,6 +77,39 @@ export default async function BookDesignPage({
     .eq("book_id", id)
     .order("created_at", { ascending: false })
 
+  // Generate signed URLs for photos (bucket is private)
+  let photosWithSignedUrls: BookPhoto[] = []
+  if (photos && photos.length > 0) {
+    const serviceClient = await createServiceRoleClient()
+    photosWithSignedUrls = await Promise.all(
+      photos.map(async (photo: any) => {
+        // Extract file path from URL or use filename
+        let filePath = photo.url
+        if (photo.url && photo.url.includes("/attachments/")) {
+          const parts = photo.url.split("/attachments/")
+          filePath = parts[1] || photo.filename || ""
+        } else if (photo.filename) {
+          filePath = `books/${id}/photos/${photo.filename}`
+        }
+
+        // Generate signed URL (valid for 1 hour)
+        const { data: signedData, error: signedError } = await serviceClient.storage
+          .from("attachments")
+          .createSignedUrl(filePath, 3600)
+
+        if (signedError || !signedData?.signedUrl) {
+          console.error("Error creating signed URL:", signedError, { photo, filePath })
+          return { ...photo, url: photo.url } // Fallback to original URL
+        }
+
+        return {
+          ...photo,
+          url: signedData.signedUrl,
+        }
+      })
+    )
+  }
+
   return (
     <div className="h-screen flex flex-col">
       <BookDesigner
@@ -84,7 +117,7 @@ export default async function BookDesignPage({
         initialEntries={entries as Entry[]}
         initialPersons={persons as Person[]}
         initialPages={pages}
-        initialPhotos={(photos as BookPhoto[]) || []}
+        initialPhotos={photosWithSignedUrls || []}
       />
     </div>
   )

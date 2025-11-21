@@ -130,7 +130,25 @@ export default function BookSidebarContent({
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
-          <BookPhotoCarousel photos={photos} />
+          <BookPhotoCarousel 
+            photos={photos} 
+            bookId={bookId}
+            onPhotoDeleted={async () => {
+              // Reload photos from server after deletion
+              try {
+                const res = await fetch(`/api/books/${bookId}/photos`)
+                if (res.ok) {
+                  const reloadedPhotos = await res.json()
+                  // Trigger parent to refresh photos
+                  if (onPhotosUploaded) {
+                    onPhotosUploaded(reloadedPhotos)
+                  }
+                }
+              } catch (error) {
+                console.error("Error reloading photos after deletion:", error)
+              }
+            }}
+          />
         </div>
         <BookPhotoUpload
           bookId={bookId}

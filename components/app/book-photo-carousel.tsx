@@ -1,18 +1,22 @@
 "use client"
 
 import { useDraggable } from "@dnd-kit/core"
-import { ChevronUp, ChevronDown } from "lucide-react"
+import { ChevronUp, ChevronDown, X } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
 import type { BookPhoto } from "@/lib/types"
 import { Button } from "@/components/ui/button"
+import { useToast } from "@/components/ui/use-toast"
 
 interface BookPhotoCarouselProps {
   photos: BookPhoto[]
+  bookId: string
+  onPhotoDeleted?: (photoId: string) => void
 }
 
-export default function BookPhotoCarousel({ photos }: BookPhotoCarouselProps) {
+export default function BookPhotoCarousel({ photos, bookId, onPhotoDeleted }: BookPhotoCarouselProps) {
   const [scrollPosition, setScrollPosition] = useState(0)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const { toast } = useToast()
 
   const scroll = (direction: "up" | "down") => {
     if (!scrollContainerRef.current) return
@@ -56,7 +60,12 @@ export default function BookPhotoCarousel({ photos }: BookPhotoCarouselProps) {
           </div>
         ) : (
           photos.map((photo) => (
-            <DraggablePhoto key={photo.id} photo={photo} />
+            <DraggablePhoto 
+              key={photo.id} 
+              photo={photo} 
+              bookId={bookId}
+              onDeleted={onPhotoDeleted}
+            />
           ))
         )}
       </div>
@@ -73,7 +82,15 @@ export default function BookPhotoCarousel({ photos }: BookPhotoCarouselProps) {
   )
 }
 
-function DraggablePhoto({ photo }: { photo: BookPhoto }) {
+function DraggablePhoto({ 
+  photo, 
+  bookId,
+  onDeleted 
+}: { 
+  photo: BookPhoto
+  bookId: string
+  onDeleted?: (photoId: string) => void
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: photo.id,
@@ -82,6 +99,8 @@ function DraggablePhoto({ photo }: { photo: BookPhoto }) {
         photo: photo,
       },
     })
+  const [isDeleting, setIsDeleting] = useState(false)
+  const { toast } = useToast()
 
   const style = transform
     ? {
@@ -89,17 +108,61 @@ function DraggablePhoto({ photo }: { photo: BookPhoto }) {
       }
     : undefined
 
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    
+    if (isDeleting) return
+    
+    setIsDeleting(true)
+    try {
+      const res = await fetch(`/api/books/${bookId}/photos?photo_id=${photo.id}`, {
+        method: "DELETE",
+      })
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Failed to delete photo" }))
+        throw new Error(error.error || "Failed to delete photo")
+      }
+
+      toast({
+        title: "Photo deleted",
+        description: "The photo has been removed from your book.",
+      })
+
+      onDeleted?.(photo.id)
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete photo",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      {...listeners}
-      {...attributes}
       className={`cursor-grab active:cursor-grabbing ${
         isDragging ? "opacity-50" : ""
       }`}
     >
-      <div className="border rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow relative">
+      <div className="border rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow relative group">
+        {/* Delete button - appears on hover */}
+        <button
+          onClick={handleDelete}
+          disabled={isDeleting}
+          className="absolute top-1 right-1 z-10 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/90 disabled:opacity-50"
+          title="Delete photo"
+        >
+          <X className="h-3 w-3" />
+        </button>
+        
+        {/* Drag handle */}
+        <div {...listeners} {...attributes} className="w-full h-full">
         {photo.url ? (
           <>
             <img
@@ -142,6 +205,7 @@ function DraggablePhoto({ photo }: { photo: BookPhoto }) {
             <div className="text-[10px]">{photo.filename || "Photo"}</div>
           </div>
         )}
+        </div>
       </div>
     </div>
   )

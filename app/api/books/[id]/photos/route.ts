@@ -382,7 +382,7 @@ export async function DELETE(
     // Get photo to delete file from storage
     const { data: photo, error: photoFetchError } = await supabase
       .from("book_photos")
-      .select("url, filename")
+      .select("url, filename, path")
       .eq("id", photoId)
       .eq("book_id", id)
       .single()
@@ -394,10 +394,11 @@ export async function DELETE(
       )
     }
 
-    // Delete from storage if filename exists
-    if (photo.filename) {
+    // Delete from storage if path or filename exists
+    if (photo.path || photo.filename) {
       const serviceClient = await createServiceRoleClient()
-      const filePath = `books/${id}/photos/${photo.filename}`
+      // Prefer path if available, otherwise construct from filename
+      const filePath = photo.path || `books/${id}/photos/${photo.filename}`
       await serviceClient.storage.from("attachments").remove([filePath])
     }
 

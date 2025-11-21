@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Download, Loader2, Play, Trash2 } from "lucide-react"
+import { Download, Loader2, Play, Trash2, Edit } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import Link from "next/link"
 import { format } from "date-fns"
@@ -170,6 +170,13 @@ export default function BookDetail({ book, householdId }: BookDetailProps) {
           )}
 
           <div className="flex gap-2 pt-4">
+            <Link href={`/app/books/${book.id}/design`}>
+              <Button variant="default">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Book
+              </Button>
+            </Link>
+
             {book.status === "draft" && (
               <Button onClick={handleRender} disabled={rendering}>
                 {rendering ? (

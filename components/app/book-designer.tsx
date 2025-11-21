@@ -471,9 +471,9 @@ export default function BookDesigner({
     }, 50)
   }
 
-  // Photo upload handler
+  // Photo upload/refresh handler
   const handlePhotosUploaded = async (newPhotos: BookPhoto[]) => {
-    console.log("Photos uploaded:", newPhotos)
+    console.log("Photos updated:", newPhotos)
     // Reload all photos from server to ensure we have the latest
     try {
       const res = await fetch(`/api/books/${book.id}/photos`)
@@ -482,18 +482,25 @@ export default function BookDesigner({
         console.log("Reloaded photos from server:", allPhotosData)
         setAllPhotos(allPhotosData || [])
       } else {
-        // Fallback: just add the new photos
-        setAllPhotos((prev) => [...newPhotos, ...prev])
+        // Fallback: if newPhotos provided, use them; otherwise keep current
+        if (newPhotos.length > 0) {
+          setAllPhotos((prev) => [...newPhotos, ...prev])
+        }
       }
     } catch (error) {
       console.error("Error reloading photos:", error)
-      // Fallback: just add the new photos
-      setAllPhotos((prev) => [...newPhotos, ...prev])
+      // Fallback: if newPhotos provided, use them; otherwise keep current
+      if (newPhotos.length > 0) {
+        setAllPhotos((prev) => [...newPhotos, ...prev])
+      }
     }
-    toast({
-      title: "Photos uploaded",
-      description: `${newPhotos.length} photo(s) added`,
-    })
+    // Only show toast if new photos were actually uploaded
+    if (newPhotos.length > 0) {
+      toast({
+        title: "Photos uploaded",
+        description: `${newPhotos.length} photo(s) added`,
+      })
+    }
   }
 
   // Remove item from page

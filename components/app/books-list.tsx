@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Plus, Download, Loader2, Trash2 } from "lucide-react"
+import { Plus, Download, Loader2, Trash2, Edit } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import Link from "next/link"
 import { format } from "date-fns"
@@ -157,8 +157,14 @@ export default function BooksList({ householdId }: BooksListProps) {
                     </Badge>
                   </div>
                   <div className="flex gap-2">
-                    <Link href={`/app/books/${book.id}`} className="flex-1">
+                    <Link href={`/app/books/${book.id}/design`} className="flex-1">
                       <Button variant="outline" className="w-full">
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                    </Link>
+                    <Link href={`/app/books/${book.id}`}>
+                      <Button variant="outline" size="icon" title="View details">
                         View
                       </Button>
                     </Link>
@@ -167,6 +173,7 @@ export default function BooksList({ householdId }: BooksListProps) {
                         variant="outline"
                         size="icon"
                         onClick={() => handleDownload(book.id)}
+                        title="Download PDF"
                       >
                         <Download className="h-4 w-4" />
                       </Button>
@@ -181,6 +188,7 @@ export default function BooksList({ householdId }: BooksListProps) {
                       size="icon"
                       onClick={() => setShowDeleteDialog(book.id)}
                       className="text-destructive hover:text-destructive"
+                      title="Delete book"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

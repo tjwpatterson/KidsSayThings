@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,7 @@ import { Upload, X, Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
 import type { BookPhoto } from "@/lib/types"
+import heic2any from "heic2any"
 
 interface BookPhotoUploadProps {
   bookId: string
@@ -30,12 +31,43 @@ export default function BookPhotoUpload({
 }: BookPhotoUploadProps) {
   const [files, setFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
   const { toast } = useToast()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const dropZoneRef = useRef<HTMLDivElement>(null)
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const selectedFiles = Array.from(e.target.files)
       setFiles((prev) => [...prev, ...selectedFiles])
+    }
+  }
+
+  const addFiles = (fileList: FileList | File[]) => {
+    const fileArray = Array.from(fileList)
+    setFiles((prev) => [...prev, ...fileArray])
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const droppedFiles = e.dataTransfer.files
+    if (droppedFiles.length > 0) {
+      addFiles(droppedFiles)
     }
   }
 
@@ -86,8 +118,40 @@ export default function BookPhotoUpload({
 
       // Upload files using signed URLs (bypasses storage policies)
       for (let i = 0; i < files.length; i++) {
-        const file = files[i]
+        let file = files[i]
         try {
+          // Convert HEIC/HEIF to JPEG if needed
+          const isHeic = file.name.toLowerCase().endsWith('.heic') || 
+                        file.name.toLowerCase().endsWith('.heif') ||
+                        file.type === 'image/heic' || 
+                        file.type === 'image/heif'
+          
+          if (isHeic) {
+            console.log(`Converting HEIC file: ${file.name}`)
+            try {
+              const convertedBlob = await heic2any({
+                blob: file,
+                toType: "image/jpeg",
+                quality: 0.92, // High quality
+              })
+              
+              // heic2any returns an array, get the first item
+              const convertedFile = convertedBlob instanceof Array ? convertedBlob[0] : convertedBlob
+              
+              // Create a new File object with JPEG extension
+              const jpegFilename = file.name.replace(/\.(heic|heif)$/i, '.jpg')
+              file = new File([convertedFile], jpegFilename, {
+                type: "image/jpeg",
+                lastModified: file.lastModified,
+              })
+              console.log(`Converted to JPEG: ${jpegFilename}`)
+            } catch (conversionError) {
+              console.error("HEIC conversion failed:", conversionError)
+              failedUploads.push(`${file.name}: Failed to convert HEIC to JPEG`)
+              continue
+            }
+          }
+
           // Generate filename
           const timestamp = Date.now()
           const filename = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`
@@ -221,13 +285,24 @@ export default function BookPhotoUpload({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="border-2 border-dashed rounded-lg p-8 text-center">
+          <div
+            ref={dropZoneRef}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              isDragging
+                ? "border-primary bg-primary/5"
+                : "border-muted hover:border-muted-foreground/50"
+            }`}
+          >
             <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <label htmlFor="file-upload" className="cursor-pointer">
               <span className="text-sm font-medium text-primary hover:text-primary/80">
-                Click to select photos
+                {isDragging ? "Drop photos here" : "Click to select photos or drag and drop"}
               </span>
               <input
+                ref={fileInputRef}
                 id="file-upload"
                 type="file"
                 multiple
@@ -237,7 +312,7 @@ export default function BookPhotoUpload({
               />
             </label>
             <p className="text-xs text-muted-foreground mt-2">
-              PNG, JPG, GIF up to 10MB each
+              PNG, JPG, HEIC, GIF up to 10MB each
             </p>
           </div>
 

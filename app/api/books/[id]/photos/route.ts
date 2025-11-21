@@ -49,7 +49,40 @@ export async function GET(
 
     if (photosError) throw photosError
 
-    return NextResponse.json(photos || [])
+    // Generate signed URLs for each photo (bucket is private)
+    const serviceClient = await createServiceRoleClient()
+    const photosWithSignedUrls = await Promise.all(
+      (photos || []).map(async (photo) => {
+        // Extract file path from URL or reconstruct it
+        // URL format: https://[project].supabase.co/storage/v1/object/public/attachments/books/[id]/photos/[filename]
+        // We need: books/[id]/photos/[filename]
+        let filePath = photo.url
+        if (photo.url.includes("/attachments/")) {
+          const parts = photo.url.split("/attachments/")
+          filePath = parts[1] || photo.filename || ""
+        } else if (photo.filename) {
+          // Reconstruct path from filename
+          filePath = `books/${id}/photos/${photo.filename}`
+        }
+
+        // Generate signed URL (valid for 1 hour)
+        const { data: signedData, error: signedError } = await serviceClient.storage
+          .from("attachments")
+          .createSignedUrl(filePath, 3600)
+
+        if (signedError) {
+          console.error("Error creating signed URL for photo:", signedError, { photo, filePath })
+          return { ...photo, signed_url: photo.url } // Fallback to original URL
+        }
+
+        return {
+          ...photo,
+          url: signedData?.signedUrl || photo.url, // Use signed URL
+        }
+      })
+    )
+
+    return NextResponse.json(photosWithSignedUrls || [])
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || "Failed to fetch photos" },

@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { DndContext, DragOverlay, closestCenter } from "@dnd-kit/core"
-import { MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core"
+import { DndContext, DragOverlay, closestCenter, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core"
 import type {
   Book,
   Entry,

@@ -77,6 +77,10 @@ function DraggablePhoto({ photo }: { photo: BookPhoto }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: photo.id,
+      data: {
+        type: "photo",
+        photo: photo,
+      },
     })
 
   const style = transform
@@ -96,11 +100,29 @@ function DraggablePhoto({ photo }: { photo: BookPhoto }) {
       }`}
     >
       <div className="border rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
-        <img
-          src={photo.url}
-          alt={photo.filename || "Photo"}
-          className="w-full aspect-square object-cover"
-        />
+        {photo.url ? (
+          <img
+            src={photo.url}
+            alt={photo.filename || "Photo"}
+            className="w-full aspect-square object-cover"
+            onError={(e) => {
+              console.error("Failed to load photo:", photo.url, photo)
+              // Fallback: show filename if image fails to load
+              const target = e.target as HTMLImageElement
+              target.style.display = "none"
+              if (target.parentElement) {
+                const fallback = document.createElement("div")
+                fallback.className = "w-full aspect-square flex items-center justify-center p-2 bg-muted text-xs text-center break-words"
+                fallback.textContent = photo.filename || "Photo"
+                target.parentElement.appendChild(fallback)
+              }
+            }}
+          />
+        ) : (
+          <div className="w-full aspect-square flex items-center justify-center p-2 bg-muted text-xs text-center break-words">
+            {photo.filename || "Photo"}
+          </div>
+        )}
       </div>
     </div>
   )

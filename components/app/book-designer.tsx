@@ -268,11 +268,15 @@ export default function BookDesigner({
     const activeId = active.id as string
     const overId = over.id as string
 
-    // Determine if dragging photo or quote
-    const isPhoto = allPhotos.some((p) => p.id === activeId)
-    const isQuote = allQuotes.some((q) => q.id === activeId)
+    // Determine if dragging photo or quote from data or by ID lookup
+    const activeData = active.data?.current
+    const isPhoto = activeData?.type === "photo" || allPhotos.some((p) => p.id === activeId)
+    const isQuote = activeData?.type === "quote" || allQuotes.some((q) => q.id === activeId)
 
-    if (!isPhoto && !isQuote) return
+    if (!isPhoto && !isQuote) {
+      console.log("Drag end: Not a photo or quote", { activeId, activeData, allPhotos: allPhotos.length, allQuotes: allQuotes.length })
+      return
+    }
 
     // Determine target page side and position
     const isLeftPage = overId.includes("left-")

@@ -84,52 +84,68 @@ export default function BookPhotoUpload({
       const uploadedPhotos: BookPhoto[] = []
       const failedUploads: string[] = []
 
-      // Upload files directly to Supabase Storage (bypasses Vercel payload limit)
+      // Upload files using signed URLs (bypasses storage policies)
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
         try {
           // Generate filename
           const timestamp = Date.now()
           const filename = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`
-          const filePath = `books/${bookId}/photos/${filename}`
 
-          // Upload directly to Supabase Storage
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from("attachments")
-            .upload(filePath, file, {
-              contentType: file.type || "image/jpeg",
-              upsert: false,
-            })
+          // Step 1: Get signed upload URL from API
+          const urlRes = await fetch(`/api/books/${bookId}/photos?action=get-upload-url`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ filename }),
+          })
 
-          if (uploadError) {
-            console.error(`Storage upload error for ${file.name}:`, uploadError)
-            // Check if it's a storage policy error
-            if (uploadError.message.includes("new row violates row-level security") || uploadError.message.includes("policy")) {
-              // This shouldn't happen with storage, but if it does, it's a bucket policy issue
-              failedUploads.push(`${file.name}: Storage access denied. Please check bucket permissions.`)
-            } else {
-              failedUploads.push(`${file.name}: ${uploadError.message}`)
-            }
+          if (!urlRes.ok) {
+            const error = await urlRes.json().catch(() => ({ error: "Failed to get upload URL" }))
+            failedUploads.push(`${file.name}: ${error.error || "Failed to get upload URL"}`)
             continue
           }
 
-          // Get public URL
+          const { signedUrl, token, path } = await urlRes.json()
+
+          if (!signedUrl) {
+            failedUploads.push(`${file.name}: No signed URL returned`)
+            continue
+          }
+
+          // Step 2: Upload file to signed URL
+          const uploadRes = await fetch(signedUrl, {
+            method: "PUT",
+            headers: {
+              "Content-Type": file.type || "image/jpeg",
+              "x-upsert": "false",
+            },
+            body: file,
+          })
+
+          if (!uploadRes.ok) {
+            failedUploads.push(`${file.name}: Upload failed (${uploadRes.status})`)
+            continue
+          }
+
+          // Step 3: Get public URL and save metadata
+          const supabase = createClient()
           const {
             data: { publicUrl },
-          } = supabase.storage.from("attachments").getPublicUrl(filePath)
+          } = supabase.storage.from("attachments").getPublicUrl(path)
 
           if (!publicUrl) {
             failedUploads.push(`${file.name}: Failed to get public URL`)
             continue
           }
 
-          // Save photo metadata to database via API
+          // Step 4: Save photo metadata to database via API
           const res = await fetch(`/api/books/${bookId}/photos`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               url: publicUrl,
               filename: filename,
+              path: path,
             }),
           })
 

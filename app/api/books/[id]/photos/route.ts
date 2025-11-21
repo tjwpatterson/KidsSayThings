@@ -136,7 +136,7 @@ export async function POST(
         path: filePath,
       })
     } else if (contentType.includes("application/json")) {
-      // Save metadata after upload
+      // Save metadata after upload (from signed URL upload)
       const body = await request.json()
       const { url, filename, path } = body
 

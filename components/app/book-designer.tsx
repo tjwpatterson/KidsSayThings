@@ -413,8 +413,24 @@ export default function BookDesigner({
   }
 
   // Photo upload handler
-  const handlePhotosUploaded = (newPhotos: BookPhoto[]) => {
-    setAllPhotos((prev) => [...newPhotos, ...prev])
+  const handlePhotosUploaded = async (newPhotos: BookPhoto[]) => {
+    console.log("Photos uploaded:", newPhotos)
+    // Reload all photos from server to ensure we have the latest
+    try {
+      const res = await fetch(`/api/books/${book.id}/photos`)
+      if (res.ok) {
+        const allPhotosData = await res.json()
+        console.log("Reloaded photos from server:", allPhotosData)
+        setAllPhotos(allPhotosData || [])
+      } else {
+        // Fallback: just add the new photos
+        setAllPhotos((prev) => [...newPhotos, ...prev])
+      }
+    } catch (error) {
+      console.error("Error reloading photos:", error)
+      // Fallback: just add the new photos
+      setAllPhotos((prev) => [...newPhotos, ...prev])
+    }
     toast({
       title: "Photos uploaded",
       description: `${newPhotos.length} photo(s) added`,

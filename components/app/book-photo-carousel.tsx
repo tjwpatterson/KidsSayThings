@@ -99,28 +99,47 @@ function DraggablePhoto({ photo }: { photo: BookPhoto }) {
         isDragging ? "opacity-50" : ""
       }`}
     >
-      <div className="border rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
+      <div className="border rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow relative">
         {photo.url ? (
-          <img
-            src={photo.url}
-            alt={photo.filename || "Photo"}
-            className="w-full aspect-square object-cover"
-            onError={(e) => {
-              console.error("Failed to load photo:", photo.url, photo)
-              // Fallback: show filename if image fails to load
-              const target = e.target as HTMLImageElement
-              target.style.display = "none"
-              if (target.parentElement) {
-                const fallback = document.createElement("div")
-                fallback.className = "w-full aspect-square flex items-center justify-center p-2 bg-muted text-xs text-center break-words"
-                fallback.textContent = photo.filename || "Photo"
-                target.parentElement.appendChild(fallback)
-              }
-            }}
-          />
+          <>
+            <img
+              src={photo.url}
+              alt={photo.filename || "Photo"}
+              className="w-full aspect-square object-cover"
+              onError={(e) => {
+                console.error("Failed to load photo:", {
+                  url: photo.url,
+                  filename: photo.filename,
+                  photoId: photo.id,
+                  fullPhoto: photo,
+                })
+                // Show error state
+                const target = e.target as HTMLImageElement
+                target.style.display = "none"
+                const parent = target.parentElement
+                if (parent && !parent.querySelector(".photo-error")) {
+                  const errorDiv = document.createElement("div")
+                  errorDiv.className = "photo-error w-full aspect-square flex flex-col items-center justify-center p-2 bg-muted text-xs text-center break-words"
+                  errorDiv.innerHTML = `
+                    <div class="text-muted-foreground mb-1">⚠️ Image failed to load</div>
+                    <div class="text-[10px] text-muted-foreground/70">${photo.filename || "Photo"}</div>
+                  `
+                  parent.appendChild(errorDiv)
+                }
+              }}
+              onLoad={() => {
+                console.log("Photo loaded successfully:", photo.url)
+              }}
+            />
+            {/* Show filename overlay on hover for debugging */}
+            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] p-1 opacity-0 hover:opacity-100 transition-opacity truncate">
+              {photo.filename || "Photo"}
+            </div>
+          </>
         ) : (
-          <div className="w-full aspect-square flex items-center justify-center p-2 bg-muted text-xs text-center break-words">
-            {photo.filename || "Photo"}
+          <div className="w-full aspect-square flex flex-col items-center justify-center p-2 bg-muted text-xs text-center break-words">
+            <div className="text-muted-foreground mb-1">⚠️ No URL</div>
+            <div className="text-[10px]">{photo.filename || "Photo"}</div>
           </div>
         )}
       </div>

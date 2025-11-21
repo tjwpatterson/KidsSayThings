@@ -96,13 +96,49 @@ export async function POST(
       )
     }
 
-    // Check if this is a JSON request (from client-side upload) or FormData (legacy)
+    // Check if this is a request for signed upload URL or metadata save
     const contentType = request.headers.get("content-type") || ""
+    const urlParams = new URL(request.url).searchParams
+    const action = urlParams.get("action")
     
-    if (contentType.includes("application/json")) {
-      // New approach: Client uploads directly to Supabase, we just save metadata
+    if (action === "get-upload-url") {
+      // Generate signed upload URL for client
+      const { filename } = await request.json()
+      
+      if (!filename) {
+        return NextResponse.json(
+          { error: "Filename is required" },
+          { status: 400 }
+        )
+      }
+
+      const filePath = `books/${id}/photos/${filename}`
+      const serviceClient = await createServiceRoleClient()
+      
+      // Create signed upload URL (valid for 1 hour)
+      const { data: signedData, error: signedError } = await serviceClient.storage
+        .from("attachments")
+        .createSignedUploadUrl(filePath, {
+          upsert: false,
+        })
+
+      if (signedError) {
+        console.error("Error creating signed upload URL:", signedError)
+        return NextResponse.json(
+          { error: `Failed to create upload URL: ${signedError.message}` },
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json({
+        signedUrl: signedData.signedUrl,
+        token: signedData.token,
+        path: filePath,
+      })
+    } else if (contentType.includes("application/json")) {
+      // Save metadata after upload
       const body = await request.json()
-      const { url, filename } = body
+      const { url, filename, path } = body
 
       if (!url || !filename) {
         return NextResponse.json(

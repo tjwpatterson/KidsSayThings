@@ -209,12 +209,23 @@ export default function BookDesigner({
       const savedPage = await res.json()
       console.log("Page saved successfully:", savedPage)
 
-      // Update local state with saved page
+      // Update local state with saved page - merge to preserve any local changes
       setPages((prev) => {
         const existingIndex = prev.findIndex((p) => p.page_number === currentPage)
         if (existingIndex >= 0) {
           const updated = [...prev]
-          updated[existingIndex] = savedPage
+          // Merge saved page with current state to preserve any local changes
+          const currentPageState = updated[existingIndex]
+          updated[existingIndex] = {
+            ...savedPage,
+            // Preserve local content if it's more recent (has more items)
+            left_content: (currentPageState.left_content?.length || 0) > (savedPage.left_content?.length || 0)
+              ? currentPageState.left_content
+              : savedPage.left_content,
+            right_content: (currentPageState.right_content?.length || 0) > (savedPage.right_content?.length || 0)
+              ? currentPageState.right_content
+              : savedPage.right_content,
+          }
           return updated
         }
         return [...prev, savedPage]
@@ -440,12 +451,19 @@ export default function BookDesigner({
     })
 
     // Save immediately with the updated content to prevent disappearing
+    // Use a shorter timeout and clear any pending auto-save
+    if (saveTimeout) {
+      clearTimeout(saveTimeout)
+      setSaveTimeout(null)
+    }
+    
     setTimeout(() => {
+      console.log("Saving drag result:", { updatedLeftContent, updatedRightContent, currentPage })
       savePage({
         left_content: updatedLeftContent,
         right_content: updatedRightContent,
       })
-    }, 100)
+    }, 50)
   }
 
   // Photo upload handler

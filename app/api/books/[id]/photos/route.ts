@@ -391,7 +391,8 @@ export async function DELETE(
     // Get photo to delete file from storage
     // Note: path column may not exist in older databases, so we handle it gracefully
     // First try with path column, then fall back to without it
-    let photo: { id: string; book_id: string; url: string; filename: string | null; path?: string | null } | null = null
+    type PhotoType = { id: string; book_id: string; url: string; filename: string | null; path?: string | null }
+    let photo: PhotoType | null = null
     let photoFetchError = null
     
     try {
@@ -403,7 +404,7 @@ export async function DELETE(
         .single()
       
       if (photoData && !error) {
-        photo = photoData as typeof photo
+        photo = photoData as PhotoType
       } else {
         photoFetchError = error
       }
@@ -419,7 +420,7 @@ export async function DELETE(
           .single()
         
         if (photoData && !error) {
-          photo = { ...photoData, path: undefined } as typeof photo
+          photo = { ...photoData, path: undefined } as PhotoType
         } else {
           photoFetchError = error
         }

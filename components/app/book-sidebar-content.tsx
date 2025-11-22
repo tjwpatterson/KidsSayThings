@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -169,7 +169,15 @@ export default function BookSidebarContent({
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-sm">Quotes</h3>
           </div>
-          <Select value={selectedPersonFilter || "all"} onValueChange={onPersonFilterChange}>
+          <Select value={selectedPersonFilter || "all"} onValueChange={(value) => {
+            try {
+              if (onPersonFilterChange) {
+                onPersonFilterChange(value)
+              }
+            } catch (error) {
+              console.error("Error changing person filter:", error)
+            }
+          }}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Filter by person" />
             </SelectTrigger>

@@ -384,47 +384,17 @@ export async function DELETE(
 
     console.log("Book verified, checking photo:", { photoId, bookId: id })
 
-    // First, let's check if photo exists at all (without book_id filter to debug)
-    const { data: allPhotos, error: allPhotosError } = await supabase
-      .from("book_photos")
-      .select("id, book_id, filename")
-      .eq("id", photoId)
-
-    console.log("Photo lookup (any book):", { allPhotos, allPhotosError, photoId })
-
-    // Get photo to delete file from storage - try without book_id filter first if RLS might be blocking
-    let photo = null
-    let photoFetchError = null
+    // Use service role client to bypass RLS since we've already verified authorization
+    // This ensures we can delete photos even if RLS policies have edge cases
+    const serviceClient = await createServiceRoleClient()
     
-    // First try with book_id filter
-    const { data: photoWithBook, error: errorWithBook } = await supabase
+    // Get photo to delete file from storage
+    const { data: photo, error: photoFetchError } = await serviceClient
       .from("book_photos")
       .select("id, book_id, url, filename, path")
       .eq("id", photoId)
       .eq("book_id", id)
       .single()
-
-    if (photoWithBook && !errorWithBook) {
-      photo = photoWithBook
-    } else {
-      // If that fails, try without book_id filter (RLS should still protect us)
-      const { data: photoAny, error: errorAny } = await supabase
-        .from("book_photos")
-        .select("id, book_id, url, filename, path")
-        .eq("id", photoId)
-        .single()
-      
-      if (photoAny && !errorAny) {
-        // Verify it belongs to the correct book
-        if (photoAny.book_id === id) {
-          photo = photoAny
-        } else {
-          photoFetchError = { message: `Photo belongs to different book: ${photoAny.book_id}` }
-        }
-      } else {
-        photoFetchError = errorAny || errorWithBook
-      }
-    }
 
     console.log("Photo lookup result:", { 
       photo, 
@@ -433,35 +403,29 @@ export async function DELETE(
       bookId: id,
       errorCode: photoFetchError?.code,
       errorMessage: photoFetchError?.message,
-      errorDetails: photoFetchError?.details,
-      allPhotosFound: allPhotos
+      errorDetails: photoFetchError?.details
     })
 
     if (photoFetchError || !photo) {
-      // Check if photo exists but belongs to different book
-      if (allPhotos && allPhotos.length > 0 && allPhotos[0].book_id !== id) {
-        console.error("Photo exists but belongs to different book:", {
-          photoId,
-          requestedBookId: id,
-          actualBookId: allPhotos[0].book_id
-        })
-        return NextResponse.json(
-          { error: `Photo not found in this book. Photo belongs to book ${allPhotos[0].book_id}` },
-          { status: 404 }
-        )
-      }
+      // If photo not found with book_id filter, check if it exists at all
+      const { data: photoAny, error: errorAny } = await serviceClient
+        .from("book_photos")
+        .select("id, book_id, filename")
+        .eq("id", photoId)
+        .single()
       
-      // If photo exists with correct book_id but query failed, it's likely an RLS issue
-      if (allPhotos && allPhotos.length > 0 && allPhotos[0].book_id === id) {
-        console.error("Photo exists with correct book_id but query failed - likely RLS issue:", {
-          photoId,
-          bookId: id,
-          error: photoFetchError
-        })
-        return NextResponse.json(
-          { error: `Photo found but access denied. This may be a permissions issue. PhotoId: ${photoId}, BookId: ${id}` },
-          { status: 403 }
-        )
+      if (photoAny && !errorAny) {
+        if (photoAny.book_id !== id) {
+          console.error("Photo exists but belongs to different book:", {
+            photoId,
+            requestedBookId: id,
+            actualBookId: photoAny.book_id
+          })
+          return NextResponse.json(
+            { error: `Photo not found in this book. Photo belongs to book ${photoAny.book_id}` },
+            { status: 404 }
+          )
+        }
       }
       
       return NextResponse.json(
@@ -472,14 +436,13 @@ export async function DELETE(
 
     // Delete from storage if path or filename exists
     if (photo.path || photo.filename) {
-      const serviceClient = await createServiceRoleClient()
       // Prefer path if available, otherwise construct from filename
       const filePath = photo.path || `books/${id}/photos/${photo.filename}`
       await serviceClient.storage.from("attachments").remove([filePath])
     }
 
-    // Delete from database
-    const { error: deleteError } = await supabase
+    // Delete from database using service role client (we've already verified authorization)
+    const { error: deleteError } = await serviceClient
       .from("book_photos")
       .delete()
       .eq("id", photoId)

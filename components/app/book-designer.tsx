@@ -262,6 +262,41 @@ export default function BookDesigner({
     }
   }, [layout, currentPage, savePage, saveTimeout, activeId])
 
+  // Handle layout change with immediate save
+  const handleLayoutChange = useCallback(async (newLayout: PageLayout | null) => {
+    try {
+      setLayout(newLayout)
+      // Save immediately when layout changes
+      const latestPageData = pages.find((p) => p.page_number === currentPage)
+      if (latestPageData || newLayout) {
+        const pageData = {
+          page_number: currentPage,
+          left_layout: newLayout,
+          right_layout: null,
+          left_content: latestPageData?.left_content || [],
+          right_content: [],
+        }
+        
+        const res = await fetch(`/api/books/${book.id}/pages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(pageData),
+        })
+        
+        if (!res.ok) {
+          throw new Error("Failed to save layout")
+        }
+      }
+    } catch (error) {
+      console.error("Error saving layout:", error)
+      toast({
+        title: "Error",
+        description: "Failed to save layout change",
+        variant: "destructive",
+      })
+    }
+  }, [currentPage, pages, book.id, toast])
+
   // Auto-generate book
   const handleAutoGenerate = useCallback(async () => {
     try {

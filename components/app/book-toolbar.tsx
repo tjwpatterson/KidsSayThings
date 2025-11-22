@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Undo2, Redo2, Cloud, Share2, Sparkles } from "lucide-react"
+import { Undo2, Redo2, Cloud, Share2, Sparkles, ZoomIn, ZoomOut, Maximize2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import type { Book } from "@/lib/types"
 
@@ -12,6 +12,8 @@ interface BookToolbarProps {
   onUpdate: (updates: Partial<Book>) => Promise<void>
   onAutoGenerate: () => Promise<void>
   saving?: boolean
+  zoom?: number
+  onZoomChange?: (zoom: number) => void
 }
 
 export default function BookToolbar({
@@ -19,9 +21,37 @@ export default function BookToolbar({
   onUpdate,
   onAutoGenerate,
   saving = false,
+  zoom = 100,
+  onZoomChange,
 }: BookToolbarProps) {
   const [title, setTitle] = useState(book.title || "")
   const { toast } = useToast()
+
+  const handleZoomIn = () => {
+    if (onZoomChange) {
+      const newZoom = Math.min(zoom + 25, 200) // Max 200%
+      onZoomChange(newZoom)
+    }
+  }
+
+  const handleZoomOut = () => {
+    if (onZoomChange) {
+      const newZoom = Math.max(zoom - 25, 50) // Min 50%
+      onZoomChange(newZoom)
+    }
+  }
+
+  const handleZoomReset = () => {
+    if (onZoomChange) {
+      onZoomChange(100)
+    }
+  }
+
+  const handleZoomFit = () => {
+    if (onZoomChange) {
+      onZoomChange(100) // Reset to fit
+    }
+  }
 
   const handleTitleChange = async (value: string) => {
     setTitle(value)
@@ -57,8 +87,52 @@ export default function BookToolbar({
         />
       </div>
 
-      {/* Right side - Save status, Auto-generate, Share */}
+      {/* Right side - Zoom controls, Save status, Auto-generate, Share */}
       <div className="flex items-center gap-2">
+        {/* Zoom Controls */}
+        {onZoomChange && (
+          <div className="flex items-center gap-1 border-r pr-2 mr-2">
+            <Button
+              onClick={handleZoomOut}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              disabled={zoom <= 50}
+              title="Zoom Out"
+            >
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={handleZoomReset}
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2 text-xs"
+              title="Reset Zoom"
+            >
+              {zoom}%
+            </Button>
+            <Button
+              onClick={handleZoomIn}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              disabled={zoom >= 200}
+              title="Zoom In"
+            >
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={handleZoomFit}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              title="Fit to Screen"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
         {saving ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Cloud className="h-4 w-4 animate-pulse" />

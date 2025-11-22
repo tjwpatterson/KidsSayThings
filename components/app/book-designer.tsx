@@ -55,6 +55,7 @@ export default function BookDesigner({
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null)
   const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab>("photos")
   const [selectedPersonFilter, setSelectedPersonFilter] = useState<string>("all")
+  const [zoom, setZoom] = useState(100) // Zoom percentage (100 = 100%)
 
   // Configure drag sensors for better drag detection
   const sensors = useSensors(
@@ -610,6 +611,8 @@ export default function BookDesigner({
           onUpdate={handleBookUpdate}
           onAutoGenerate={handleAutoGenerate}
           saving={saving}
+          zoom={zoom}
+          onZoomChange={setZoom}
         />
 
         {/* Main Content Area */}
@@ -637,19 +640,21 @@ export default function BookDesigner({
           </ResizableSidebar>
 
           {/* Center Canvas */}
-          <BookCanvas
-            book={book}
-            currentPage={currentPageData}
-            leftLayout={leftLayout}
-            rightLayout={rightLayout}
-            photos={allPhotos}
-            quotes={allQuotes}
-            persons={initialPersons}
-            totalPages={Math.max(pages.length, currentPage, 1)}
-            onLeftLayoutChange={setLeftLayout}
-            onRightLayoutChange={setRightLayout}
-            onRemoveItem={handleRemoveItem}
-          />
+          <div className="flex-1 overflow-auto relative" style={{ zoom: `${zoom}%` }}>
+            <BookCanvas
+              book={book}
+              currentPage={currentPageData}
+              leftLayout={leftLayout}
+              rightLayout={rightLayout}
+              photos={allPhotos}
+              quotes={allQuotes}
+              persons={initialPersons}
+              totalPages={Math.max(pages.length, currentPage, 1)}
+              onLeftLayoutChange={setLeftLayout}
+              onRightLayoutChange={setRightLayout}
+              onRemoveItem={handleRemoveItem}
+            />
+          </div>
         </div>
 
         {/* Bottom Bar - Page Thumbnails */}

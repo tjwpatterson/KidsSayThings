@@ -51,8 +51,8 @@ export default function BookCanvas({
   const pageLabel = getPageLabel(currentPageNumber)
 
   return (
-    <div className="flex-1 overflow-auto bg-muted/10 flex flex-col">
-      <div className="flex-1 flex items-center justify-center p-6">
+    <div className="flex-1 bg-muted/10 flex flex-col">
+      <div className="flex-1 flex items-center justify-center p-6 min-h-full">
         <div className="w-full max-w-6xl">
           {/* Page Type Labels */}
           {(pageLabel.left || pageLabel.right) && (

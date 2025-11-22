@@ -57,6 +57,15 @@ export async function POST(
       .eq("book_id", id)
       .order("page_number", { ascending: true })
 
+    console.log(`[PDF Render] Book ${id}: Found ${pages?.length || 0} pages`, {
+      pagesError: pagesError?.message,
+      pageNumbers: pages?.map((p) => p.page_number),
+      hasContent: pages?.some((p) => 
+        (p.left_layout && (p.left_content?.length || 0) > 0) || 
+        (p.right_layout && (p.right_content?.length || 0) > 0)
+      ),
+    })
+
     // Get entries for date range (needed for both manual and auto modes)
     const { data: entries, error: entriesError } = await supabase
       .from("entries")
@@ -83,8 +92,16 @@ export async function POST(
 
     let pdfBuffer: Buffer
 
+    // Check if pages have actual content (layouts and content items)
+    const hasManualPages = pages && pages.length > 0 && pages.some((page) => 
+      (page.left_layout && page.left_content && (page.left_content as any[]).length > 0) ||
+      (page.right_layout && page.right_content && (page.right_content as any[]).length > 0)
+    )
+
+    console.log(`[PDF Render] Using ${hasManualPages ? 'MANUAL' : 'AUTO-GENERATE'} mode`)
+
     // If manually designed pages exist, use them; otherwise auto-generate
-    if (pages && pages.length > 0 && !pagesError) {
+    if (hasManualPages && !pagesError) {
       // Get book photos
       const { data: photos, error: photosError } = await supabase
         .from("book_photos")

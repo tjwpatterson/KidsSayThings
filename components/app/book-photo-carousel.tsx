@@ -8,12 +8,12 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 
 interface BookPhotoCarouselProps {
-  photos: BookPhoto[]
+  photos?: BookPhoto[]
   bookId: string
   onPhotoDeleted?: (photoId: string) => void
 }
 
-export default function BookPhotoCarousel({ photos, bookId, onPhotoDeleted }: BookPhotoCarouselProps) {
+export default function BookPhotoCarousel({ photos = [], bookId, onPhotoDeleted }: BookPhotoCarouselProps) {
   const [scrollPosition, setScrollPosition] = useState(0)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()

@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
 
 interface BookQuoteCarouselProps {
-  quotes: Entry[]
-  persons: Person[]
+  quotes?: Entry[]
+  persons?: Person[]
 }
 
 export default function BookQuoteCarousel({
-  quotes,
-  persons,
+  quotes = [],
+  persons = [],
 }: BookQuoteCarouselProps) {
   const [scrollPosition, setScrollPosition] = useState(0)
   const scrollContainerRef = useRef<HTMLDivElement>(null)

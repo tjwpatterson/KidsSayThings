@@ -168,17 +168,17 @@ export default function BookSidebarContent({
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-sm">Quotes</h3>
           </div>
-          <Select value={selectedPersonFilter} onValueChange={onPersonFilterChange}>
+          <Select value={selectedPersonFilter || "all"} onValueChange={onPersonFilterChange}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Filter by person" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All People</SelectItem>
-              {persons.map((person) => (
+              {persons && persons.length > 0 ? persons.map((person) => (
                 <SelectItem key={person.id} value={person.id}>
                   {person.display_name}
                 </SelectItem>
-              ))}
+              )) : null}
             </SelectContent>
           </Select>
         </div>

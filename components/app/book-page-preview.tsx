@@ -95,7 +95,15 @@ export default function BookPagePreview({
                     <h4 className="text-sm font-semibold mb-3">Page Layout</h4>
                     <BookLayoutSelectorVisual
                       selected={layout}
-                      onSelect={onLayoutChange}
+                      onSelect={(newLayout) => {
+                        try {
+                          if (onLayoutChange) {
+                            onLayoutChange(newLayout)
+                          }
+                        } catch (error) {
+                          console.error("Error changing layout:", error)
+                        }
+                      }}
                       type="photo"
                     />
                   </div>
@@ -120,7 +128,15 @@ export default function BookPagePreview({
                     <h4 className="text-sm font-semibold mb-3">Choose Page Layout</h4>
                     <BookLayoutSelectorVisual
                       selected={null}
-                      onSelect={onLayoutChange}
+                      onSelect={(newLayout) => {
+                        try {
+                          if (onLayoutChange) {
+                            onLayoutChange(newLayout)
+                          }
+                        } catch (error) {
+                          console.error("Error changing layout:", error)
+                        }
+                      }}
                       type="photo"
                     />
                   </div>

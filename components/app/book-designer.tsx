@@ -623,7 +623,7 @@ export default function BookDesigner({
               persons={initialPersons}
               totalPages={Math.max(pages.length, currentPage, 1)}
               pages={pages}
-              onLayoutChange={setLayout}
+              onLayoutChange={handleLayoutChange}
               onRemoveItem={handleRemoveItem}
               onPageSelect={setCurrentPage}
               onPageReorder={async (reorderedPages: BookPage[]) => {

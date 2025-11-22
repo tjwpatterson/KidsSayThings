@@ -112,18 +112,31 @@ function DraggablePhoto({
     e.stopPropagation()
     e.preventDefault()
     
-    if (isDeleting) return
+    if (isDeleting) {
+      console.log("Delete already in progress")
+      return
+    }
     
+    console.log("Deleting photo:", photo.id, photo.filename)
     setIsDeleting(true)
     try {
-      const res = await fetch(`/api/books/${bookId}/photos?photo_id=${photo.id}`, {
+      const deleteUrl = `/api/books/${bookId}/photos?photo_id=${photo.id}`
+      console.log("DELETE request to:", deleteUrl)
+      
+      const res = await fetch(deleteUrl, {
         method: "DELETE",
       })
 
+      console.log("Delete response status:", res.status, res.statusText)
+
       if (!res.ok) {
-        const error = await res.json().catch(() => ({ error: "Failed to delete photo" }))
-        throw new Error(error.error || "Failed to delete photo")
+        const errorData = await res.json().catch(() => ({ error: "Failed to delete photo" }))
+        console.error("Delete error response:", errorData)
+        throw new Error(errorData.error || "Failed to delete photo")
       }
+
+      const result = await res.json().catch(() => ({}))
+      console.log("Delete successful:", result)
 
       toast({
         title: "Photo deleted",
@@ -132,6 +145,7 @@ function DraggablePhoto({
 
       onDeleted?.(photo.id)
     } catch (error: any) {
+      console.error("Delete error:", error)
       toast({
         title: "Error",
         description: error.message || "Failed to delete photo",
@@ -146,16 +160,24 @@ function DraggablePhoto({
     <div
       ref={setNodeRef}
       style={style}
-      className={`cursor-grab active:cursor-grabbing ${
+      className={`cursor-grab active:cursor-grabbing relative ${
         isDragging ? "opacity-50" : ""
       }`}
     >
       <div className="border rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow relative group">
-        {/* Delete button - appears on hover */}
+        {/* Delete button - appears on hover, positioned outside drag area */}
         <button
           onClick={handleDelete}
+          onMouseDown={(e) => {
+            // Prevent drag from starting when clicking delete button
+            e.stopPropagation()
+          }}
+          onTouchStart={(e) => {
+            // Prevent drag from starting on touch devices
+            e.stopPropagation()
+          }}
           disabled={isDeleting}
-          className="absolute top-1 right-1 z-10 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/90 disabled:opacity-50"
+          className="absolute top-1 right-1 z-20 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/90 disabled:opacity-50 cursor-pointer"
           title="Delete photo"
         >
           <X className="h-3 w-3" />

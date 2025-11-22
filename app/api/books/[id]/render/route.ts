@@ -127,10 +127,25 @@ export async function POST(
         })
       )
 
+      // Parse JSONB content fields
+      const formattedPages = pages.map((page) => ({
+        ...page,
+        left_content: (page.left_content as any) || [],
+        right_content: (page.right_content as any) || [],
+      }))
+
+      console.log(`[PDF Render] Formatted pages:`, formattedPages.map((p) => ({
+        page_number: p.page_number,
+        left_layout: p.left_layout,
+        right_layout: p.right_layout,
+        left_content_count: (p.left_content as any[]).length,
+        right_content_count: (p.right_content as any[]).length,
+      })))
+
       // Generate PDF from manually designed pages
       pdfBuffer = await generateManualBookPDF({
         book: book as Book,
-        pages: pages as BookPage[],
+        pages: formattedPages as BookPage[],
         photos: photosWithUrls as BookPhoto[],
         entries: entries as Entry[],
         persons: personsMap,

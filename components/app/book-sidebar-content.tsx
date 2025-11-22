@@ -132,7 +132,7 @@ export default function BookSidebarContent({
         </div>
         <div className="flex-1 overflow-y-auto">
           <BookPhotoCarousel 
-            photos={photos} 
+            photos={photos || []} 
             bookId={bookId}
             onPhotoDeleted={async () => {
               // Reload photos from server after deletion

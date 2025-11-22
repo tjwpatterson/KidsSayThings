@@ -364,6 +364,8 @@ export async function DELETE(
       )
     }
 
+    console.log("DELETE photo request:", { bookId: id, photoId, userId: user.id })
+
     // Verify book belongs to household
     const { data: book, error: bookError } = await supabase
       .from("books")
@@ -373,23 +375,57 @@ export async function DELETE(
       .single()
 
     if (bookError || !book) {
+      console.error("Book verification failed:", { bookError, bookId: id, householdId: household.id })
       return NextResponse.json(
         { error: "Book not found or not authorized" },
         { status: 404 }
       )
     }
 
+    console.log("Book verified, checking photo:", { photoId, bookId: id })
+
+    // First, let's check if photo exists at all (without book_id filter to debug)
+    const { data: allPhotos, error: allPhotosError } = await supabase
+      .from("book_photos")
+      .select("id, book_id, filename")
+      .eq("id", photoId)
+
+    console.log("Photo lookup (any book):", { allPhotos, allPhotosError, photoId })
+
     // Get photo to delete file from storage
     const { data: photo, error: photoFetchError } = await supabase
       .from("book_photos")
-      .select("url, filename, path")
+      .select("id, book_id, url, filename, path")
       .eq("id", photoId)
       .eq("book_id", id)
       .single()
 
+    console.log("Photo lookup (with book_id filter):", { 
+      photo, 
+      photoFetchError, 
+      photoId, 
+      bookId: id,
+      errorCode: photoFetchError?.code,
+      errorMessage: photoFetchError?.message,
+      errorDetails: photoFetchError?.details
+    })
+
     if (photoFetchError || !photo) {
+      // Check if photo exists but belongs to different book
+      if (allPhotos && allPhotos.length > 0) {
+        console.error("Photo exists but belongs to different book:", {
+          photoId,
+          requestedBookId: id,
+          actualBookId: allPhotos[0].book_id
+        })
+        return NextResponse.json(
+          { error: `Photo not found in this book. Photo belongs to book ${allPhotos[0].book_id}` },
+          { status: 404 }
+        )
+      }
+      
       return NextResponse.json(
-        { error: "Photo not found" },
+        { error: `Photo not found. PhotoId: ${photoId}, BookId: ${id}, Error: ${photoFetchError?.message || 'No photo found'}` },
         { status: 404 }
       )
     }

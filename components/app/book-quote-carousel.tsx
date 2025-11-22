@@ -39,7 +39,7 @@ export default function BookQuoteCarousel({
   }
 
   const getPersonName = (personId: string | null) => {
-    if (!personId) return null
+    if (!personId || !persons || persons.length === 0) return null
     return persons.find((p) => p.id === personId)?.display_name || null
   }
 

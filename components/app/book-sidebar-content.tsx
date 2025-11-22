@@ -183,7 +183,7 @@ export default function BookSidebarContent({
           </Select>
         </div>
         <div className="flex-1 overflow-y-auto">
-          <BookQuoteCarousel quotes={filteredQuotes} persons={persons} />
+          <BookQuoteCarousel quotes={filteredQuotes} persons={persons || []} />
         </div>
       </div>
     )

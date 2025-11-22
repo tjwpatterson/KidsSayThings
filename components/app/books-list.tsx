@@ -157,14 +157,14 @@ export default function BooksList({ householdId }: BooksListProps) {
                       {book.status}
                     </Badge>
                   </div>
-                  {book.updated_at && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      <span>
-                        Updated {formatDistanceToNow(new Date(book.updated_at), { addSuffix: true })}
-                      </span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    <span>
+                      {book.updated_at
+                        ? `Updated ${formatDistanceToNow(new Date(book.updated_at), { addSuffix: true })}`
+                        : `Created ${formatDistanceToNow(new Date(book.created_at), { addSuffix: true })}`}
+                    </span>
+                  </div>
                   <div className="flex gap-2">
                     <Link href={`/app/books/${book.id}/design`} className="flex-1">
                       <Button variant="outline" className="w-full">

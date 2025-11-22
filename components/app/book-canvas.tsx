@@ -21,6 +21,7 @@ interface BookCanvasProps {
   onRemoveItem: (itemId: string) => void
   onPageSelect: (pageNumber: number) => void
   onAddPage: () => void
+  onPageReorder: (reorderedPages: BookPage[]) => void
 }
 
 export default function BookCanvas({

@@ -389,12 +389,44 @@ export async function DELETE(
     const serviceClient = await createServiceRoleClient()
     
     // Get photo to delete file from storage
-    const { data: photo, error: photoFetchError } = await serviceClient
-      .from("book_photos")
-      .select("id, book_id, url, filename, path")
-      .eq("id", photoId)
-      .eq("book_id", id)
-      .single()
+    // Note: path column may not exist in older databases, so we handle it gracefully
+    // First try with path column, then fall back to without it
+    let photo = null
+    let photoFetchError = null
+    
+    try {
+      const { data: photoData, error: error } = await serviceClient
+        .from("book_photos")
+        .select("id, book_id, url, filename, path")
+        .eq("id", photoId)
+        .eq("book_id", id)
+        .single()
+      
+      if (photoData && !error) {
+        photo = photoData
+      } else {
+        photoFetchError = error
+      }
+    } catch (e: any) {
+      // If path column doesn't exist, try without it
+      if (e.message?.includes("column") && e.message?.includes("path")) {
+        console.log("path column not available, querying without it")
+        const { data: photoData, error: error } = await serviceClient
+          .from("book_photos")
+          .select("id, book_id, url, filename")
+          .eq("id", photoId)
+          .eq("book_id", id)
+          .single()
+        
+        if (photoData && !error) {
+          photo = photoData
+        } else {
+          photoFetchError = error
+        }
+      } else {
+        photoFetchError = e
+      }
+    }
 
     console.log("Photo lookup result:", { 
       photo, 

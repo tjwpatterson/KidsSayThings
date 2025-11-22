@@ -117,7 +117,13 @@ function DraggablePhoto({
       return
     }
     
-    console.log("Deleting photo:", photo.id, photo.filename)
+    console.log("Deleting photo:", {
+      photoId: photo.id,
+      bookId: bookId,
+      filename: photo.filename,
+      url: photo.url,
+      fullPhoto: photo
+    })
     setIsDeleting(true)
     try {
       const deleteUrl = `/api/books/${bookId}/photos?photo_id=${photo.id}`

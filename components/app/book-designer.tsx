@@ -505,6 +505,12 @@ export default function BookDesigner({
 
   // Remove item from page
   const handleRemoveItem = (side: "left" | "right", itemId: string) => {
+    // Clear any pending auto-save to prevent overwriting
+    if (saveTimeout) {
+      clearTimeout(saveTimeout)
+      setSaveTimeout(null)
+    }
+
     setPages((prev) => {
       const existing = prev.find((p) => p.page_number === currentPage)
       if (!existing) return prev
@@ -520,10 +526,27 @@ export default function BookDesigner({
         )
       }
 
-      return prev.map((p) => (p.page_number === currentPage ? updated : p))
+      const newPages = prev.map((p) => (p.page_number === currentPage ? updated : p))
+      
+      // Save immediately with the updated content
+      const pageData = {
+        page_number: currentPage,
+        left_layout: leftLayout,
+        right_layout: rightLayout,
+        left_content: updated.left_content,
+        right_content: updated.right_content,
+      }
+      
+      // Save immediately without delay
+      savePage({
+        left_content: updated.left_content,
+        right_content: updated.right_content,
+      }).catch((error) => {
+        console.error("Failed to save after removing item:", error)
+      })
+      
+      return newPages
     })
-
-    setTimeout(() => savePage(), 100)
   }
 
   // Finalize book
@@ -634,7 +657,47 @@ export default function BookDesigner({
           pages={pages}
           currentPage={currentPage}
           onPageSelect={setCurrentPage}
-          onAddPage={() => setCurrentPage((pages.length || 0) + 1)}
+          onAddPage={async () => {
+            const newPageNumber = Math.max(pages.length, currentPage, 1) + 1
+            // Create the new page immediately
+            try {
+              const pageData = {
+                page_number: newPageNumber,
+                left_layout: null,
+                right_layout: null,
+                left_content: [],
+                right_content: [],
+              }
+              
+              const res = await fetch(`/api/books/${book.id}/pages`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(pageData),
+              })
+              
+              if (res.ok) {
+                const newPage = await res.json()
+                setPages((prev) => [
+                  ...prev,
+                  {
+                    ...newPage,
+                    left_content: (newPage.left_content as any) || [],
+                    right_content: (newPage.right_content as any) || [],
+                  },
+                ])
+                setCurrentPage(newPageNumber)
+              } else {
+                throw new Error("Failed to create page")
+              }
+            } catch (error) {
+              console.error("Failed to create new page:", error)
+              toast({
+                title: "Error",
+                description: "Failed to create new page",
+                variant: "destructive",
+              })
+            }
+          }}
         />
       </div>
 

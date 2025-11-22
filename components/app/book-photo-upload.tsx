@@ -32,6 +32,7 @@ export default function BookPhotoUpload({
   const [files, setFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 })
   const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
@@ -75,6 +76,140 @@ export default function BookPhotoUpload({
     setFiles((prev) => prev.filter((_, i) => i !== index))
   }
 
+  // Helper function to convert HEIC to JPEG if needed
+  const convertHeicIfNeeded = async (file: File): Promise<File> => {
+    const isHeic = file.name.toLowerCase().endsWith('.heic') || 
+                  file.name.toLowerCase().endsWith('.heif') ||
+                  file.type === 'image/heic' || 
+                  file.type === 'image/heif'
+    
+    if (!isHeic) {
+      return file
+    }
+
+    console.log(`Converting HEIC file: ${file.name}`)
+    try {
+      const convertedBlob = await heic2any({
+        blob: file,
+        toType: "image/jpeg",
+        quality: 0.92,
+      })
+      
+      const convertedFile = convertedBlob instanceof Array ? convertedBlob[0] : convertedBlob
+      const jpegFilename = file.name.replace(/\.(heic|heif)$/i, '.jpg')
+      
+      return new File([convertedFile], jpegFilename, {
+        type: "image/jpeg",
+        lastModified: file.lastModified,
+      })
+    } catch (conversionError) {
+      console.error("HEIC conversion failed:", conversionError)
+      throw new Error(`Failed to convert HEIC to JPEG: ${file.name}`)
+    }
+  }
+
+  // Helper function to upload a single file
+  const uploadSingleFile = async (file: File): Promise<BookPhoto> => {
+    // Step 1: Convert HEIC if needed
+    const processedFile = await convertHeicIfNeeded(file)
+
+    // Step 2: Generate filename
+    const timestamp = Date.now()
+    const filename = `${timestamp}-${processedFile.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`
+
+    // Step 3: Get signed upload URL from API
+    const urlRes = await fetch(`/api/books/${bookId}/photos?action=get-upload-url`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename }),
+    })
+
+    if (!urlRes.ok) {
+      const error = await urlRes.json().catch(() => ({ error: "Failed to get upload URL" }))
+      throw new Error(error.error || "Failed to get upload URL")
+    }
+
+    const { signedUrl, token, path } = await urlRes.json()
+
+    if (!signedUrl) {
+      throw new Error("No signed URL returned")
+    }
+
+    // Step 4: Upload file to signed URL
+    const uploadRes = await fetch(signedUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": processedFile.type || "image/jpeg",
+        "x-upsert": "false",
+      },
+      body: processedFile,
+    })
+
+    if (!uploadRes.ok) {
+      throw new Error(`Upload failed (${uploadRes.status})`)
+    }
+
+    // Step 5: Get public URL
+    const supabase = createClient()
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("attachments").getPublicUrl(path)
+
+    if (!publicUrl) {
+      throw new Error("Failed to get public URL")
+    }
+
+    // Step 6: Save photo metadata to database via API
+    const res = await fetch(`/api/books/${bookId}/photos`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: publicUrl,
+        filename: filename,
+        path: path,
+      }),
+    })
+
+    if (!res.ok) {
+      let errorMessage = "Failed to save photo metadata"
+      try {
+        const error = await res.json()
+        errorMessage = error.error || errorMessage
+      } catch (e) {
+        errorMessage = res.statusText || errorMessage
+      }
+      throw new Error(errorMessage)
+    }
+
+    const data = await res.json()
+    if (!data.photo) {
+      throw new Error("No photo data returned from API")
+    }
+
+    return data.photo
+  }
+
+  // Process files in parallel batches
+  const processBatch = async (fileBatch: File[], batchNumber: number): Promise<{ success: BookPhoto[], failed: string[] }> => {
+    const results = await Promise.allSettled(
+      fileBatch.map((file) => uploadSingleFile(file))
+    )
+
+    const success: BookPhoto[] = []
+    const failed: string[] = []
+
+    results.forEach((result, index) => {
+      const file = fileBatch[index]
+      if (result.status === 'fulfilled') {
+        success.push(result.value)
+      } else {
+        failed.push(`${file.name}: ${result.reason?.message || 'Upload failed'}`)
+      }
+    })
+
+    return { success, failed }
+  }
+
   const handleUpload = async () => {
     if (files.length === 0) {
       toast({
@@ -110,132 +245,33 @@ export default function BookPhotoUpload({
     }
 
     setUploading(true)
+    setUploadProgress({ current: 0, total: files.length })
 
     try {
-      const supabase = createClient()
       const uploadedPhotos: BookPhoto[] = []
       const failedUploads: string[] = []
 
-      // Upload files using signed URLs (bypasses storage policies)
-      for (let i = 0; i < files.length; i++) {
-        let file = files[i]
-        try {
-          // Convert HEIC/HEIF to JPEG if needed
-          const isHeic = file.name.toLowerCase().endsWith('.heic') || 
-                        file.name.toLowerCase().endsWith('.heif') ||
-                        file.type === 'image/heic' || 
-                        file.type === 'image/heif'
-          
-          if (isHeic) {
-            console.log(`Converting HEIC file: ${file.name}`)
-            try {
-              const convertedBlob = await heic2any({
-                blob: file,
-                toType: "image/jpeg",
-                quality: 0.92, // High quality
-              })
-              
-              // heic2any returns an array, get the first item
-              const convertedFile = convertedBlob instanceof Array ? convertedBlob[0] : convertedBlob
-              
-              // Create a new File object with JPEG extension
-              const jpegFilename = file.name.replace(/\.(heic|heif)$/i, '.jpg')
-              file = new File([convertedFile], jpegFilename, {
-                type: "image/jpeg",
-                lastModified: file.lastModified,
-              })
-              console.log(`Converted to JPEG: ${jpegFilename}`)
-            } catch (conversionError) {
-              console.error("HEIC conversion failed:", conversionError)
-              failedUploads.push(`${file.name}: Failed to convert HEIC to JPEG`)
-              continue
-            }
-          }
+      // Process files in parallel batches (5 at a time to avoid overwhelming the browser/server)
+      const BATCH_SIZE = 5
+      const batches: File[][] = []
+      
+      for (let i = 0; i < files.length; i += BATCH_SIZE) {
+        batches.push(files.slice(i, i + BATCH_SIZE))
+      }
 
-          // Generate filename
-          const timestamp = Date.now()
-          const filename = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`
-
-          // Step 1: Get signed upload URL from API
-          const urlRes = await fetch(`/api/books/${bookId}/photos?action=get-upload-url`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ filename }),
-          })
-
-          if (!urlRes.ok) {
-            const error = await urlRes.json().catch(() => ({ error: "Failed to get upload URL" }))
-            failedUploads.push(`${file.name}: ${error.error || "Failed to get upload URL"}`)
-            continue
-          }
-
-          const { signedUrl, token, path } = await urlRes.json()
-
-          if (!signedUrl) {
-            failedUploads.push(`${file.name}: No signed URL returned`)
-            continue
-          }
-
-          // Step 2: Upload file to signed URL
-          const uploadRes = await fetch(signedUrl, {
-            method: "PUT",
-            headers: {
-              "Content-Type": file.type || "image/jpeg",
-              "x-upsert": "false",
-            },
-            body: file,
-          })
-
-          if (!uploadRes.ok) {
-            failedUploads.push(`${file.name}: Upload failed (${uploadRes.status})`)
-            continue
-          }
-
-          // Step 3: Get public URL and save metadata
-          const supabase = createClient()
-          const {
-            data: { publicUrl },
-          } = supabase.storage.from("attachments").getPublicUrl(path)
-
-          if (!publicUrl) {
-            failedUploads.push(`${file.name}: Failed to get public URL`)
-            continue
-          }
-
-          // Step 4: Save photo metadata to database via API
-          const res = await fetch(`/api/books/${bookId}/photos`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              url: publicUrl,
-              filename: filename,
-              path: path,
-            }),
-          })
-
-          if (!res.ok) {
-            let errorMessage = "Failed to save photo metadata"
-            try {
-              const error = await res.json()
-              errorMessage = error.error || errorMessage
-            } catch (e) {
-              errorMessage = res.statusText || errorMessage
-            }
-            console.error(`API error for ${file.name}:`, errorMessage)
-            failedUploads.push(`${file.name}: ${errorMessage}`)
-            continue
-          }
-
-          const data = await res.json()
-          if (data.photo) {
-            uploadedPhotos.push(data.photo)
-          } else {
-            failedUploads.push(`${file.name}: No photo data returned from API`)
-          }
-        } catch (error: any) {
-          console.error(`Error uploading ${file.name}:`, error)
-          failedUploads.push(`${file.name}: ${error.message || "Upload failed"}`)
-        }
+      // Process each batch sequentially, but files within each batch in parallel
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex]
+        const { success, failed } = await processBatch(batch, batchIndex + 1)
+        
+        uploadedPhotos.push(...success)
+        failedUploads.push(...failed)
+        
+        // Update progress
+        setUploadProgress({ 
+          current: Math.min(uploadedPhotos.length + failedUploads.length, files.length), 
+          total: files.length 
+        })
       }
 
       if (uploadedPhotos.length === 0) {
@@ -316,6 +352,21 @@ export default function BookPhotoUpload({
             </p>
           </div>
 
+          {uploading && uploadProgress.total > 0 && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Uploading photos...</span>
+                <span className="font-medium">{uploadProgress.current} / {uploadProgress.total}</span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                <div
+                  className="bg-primary h-full transition-all duration-300 ease-out"
+                  style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           {files.length > 0 && (
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Selected Photos ({files.length})</h4>
@@ -330,6 +381,7 @@ export default function BookPhotoUpload({
                     <button
                       onClick={() => removeFile(index)}
                       className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      disabled={uploading}
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -351,7 +403,7 @@ export default function BookPhotoUpload({
             {uploading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Uploading...
+                Uploading {uploadProgress.current > 0 && `${uploadProgress.current}/${uploadProgress.total}`}...
               </>
             ) : (
               <>

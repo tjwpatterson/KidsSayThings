@@ -56,8 +56,6 @@ export default function BookCanvas({
 
   const pageLabel = getPageLabel(currentPageNumber)
 
-  const currentPageNumber = currentPage?.page_number || 1
-
   return (
     <div className="flex-1 bg-muted/10 flex flex-col">
       <div className="flex-1 flex flex-col items-center justify-center p-4 min-h-full">

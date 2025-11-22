@@ -334,12 +334,22 @@ export default function BookDesigner({
     const targetSide = isLeftPage ? "left" : "right"
     const targetLayout = targetSide === "left" ? leftLayout : rightLayout
 
-    // Check layout constraints
+    // Check layout constraints for simplified layouts:
+    // Layout A: Full page (photo OR quote) - accepts either
+    // Layout B: Photo 2/3 + Quote 1/3 - accepts both photo and quote
     if (isPhoto) {
-      if (isLeftPage && targetLayout && targetLayout !== "C") {
-        // Valid
-      } else if (isRightPage && targetLayout === "C") {
-        // Valid
+      if (targetLayout === "A") {
+        // Layout A accepts photos
+      } else if (targetLayout === "B") {
+        // Layout B accepts photos (in photo area)
+        if (!isTop) {
+          toast({
+            title: "Invalid placement",
+            description: "Photo must be placed in the top area (2/3) of Layout B",
+            variant: "destructive",
+          })
+          return
+        }
       } else {
         toast({
           title: "Invalid placement",
@@ -349,10 +359,18 @@ export default function BookDesigner({
         return
       }
     } else if (isQuote) {
-      if (isRightPage && targetLayout && targetLayout !== "C") {
-        // Valid
-      } else if (isLeftPage && targetLayout === "C") {
-        // Valid
+      if (targetLayout === "A") {
+        // Layout A accepts quotes
+      } else if (targetLayout === "B") {
+        // Layout B accepts quotes (in quote area)
+        if (!isBottom) {
+          toast({
+            title: "Invalid placement",
+            description: "Quote must be placed in the bottom area (1/3) of Layout B",
+            variant: "destructive",
+          })
+          return
+        }
       } else {
         toast({
           title: "Invalid placement",
@@ -390,42 +408,33 @@ export default function BookDesigner({
             updatedRightContent = [contentItem]
           }
         } else if (targetLayout === "B") {
+          // Layout B: Photo 2/3 + Quote 1/3
+          // Photo goes in top area, quote goes in bottom area
           const newContent = [...(content || [])]
-          if (isTop) {
-            newContent[0] = contentItem
-          } else if (isBottom) {
-            newContent[1] = contentItem
-          } else {
-            newContent.push(contentItem)
-          }
-          if (targetSide === "left") {
-            updated.left_content = newContent
-            updatedLeftContent = newContent
-            updatedRightContent = updated.right_content || []
-          } else {
-            updated.right_content = newContent
-            updatedLeftContent = updated.left_content || []
-            updatedRightContent = newContent
-          }
-        } else if (targetLayout === "C") {
-          const newContent = [...(content || [])]
-          if (isTop) {
-            const topIndex = newContent.findIndex((c) => c.type === "photo") >= 0
-              ? newContent.findIndex((c) => c.type === "photo")
-              : 0
-            newContent[topIndex] = contentItem
-          } else if (isBottom) {
-            const bottomIndex = newContent.findIndex((c) => c.type === "quote") >= 0
-              ? newContent.findIndex((c) => c.type === "quote")
-              : newContent.length
-            if (bottomIndex < newContent.length) {
-              newContent[bottomIndex] = contentItem
+          
+          if (isPhoto && isTop) {
+            // Replace or add photo in top position
+            const existingPhotoIndex = newContent.findIndex((c) => c.type === "photo")
+            if (existingPhotoIndex >= 0) {
+              newContent[existingPhotoIndex] = contentItem
             } else {
+              // Add photo at beginning
+              newContent.unshift(contentItem)
+            }
+          } else if (isQuote && isBottom) {
+            // Replace or add quote in bottom position
+            const existingQuoteIndex = newContent.findIndex((c) => c.type === "quote")
+            if (existingQuoteIndex >= 0) {
+              newContent[existingQuoteIndex] = contentItem
+            } else {
+              // Add quote at end
               newContent.push(contentItem)
             }
           } else {
+            // Fallback: add to content
             newContent.push(contentItem)
           }
+          
           if (targetSide === "left") {
             updated.left_content = newContent
             updatedLeftContent = newContent

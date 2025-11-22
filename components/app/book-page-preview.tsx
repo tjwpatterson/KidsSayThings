@@ -12,6 +12,11 @@ import type {
 } from "@/lib/types"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  getFullPageQuoteStyle,
+  getPartialPageQuoteStyle,
+  attributionStyle,
+} from "@/lib/typography"
 
 interface BookPagePreviewProps {
   book: Book
@@ -150,28 +155,47 @@ function PageSide({
   const renderLayout = () => {
     switch (layout) {
       case "A":
-        // Single item (photo or quote) full page
+        // Layout A: Full page photo with small margin OR full page quote
         const itemA = content[0]
         if (itemA) {
           const item = getContentItem(itemA.id, itemA.type)
           if (itemA.type === "photo" && item) {
+            // Full page photo with margin (CSS cropping)
             return (
-              <div className="w-full h-full relative">
-                <img
-                  src={item.url}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
+              <div className="w-full h-full relative p-3">
+                <div className="w-full h-full rounded overflow-hidden">
+                  <img
+                    src={item.url}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                </div>
                 <RemoveButton itemId={itemA.id} onRemove={onRemoveItem} />
               </div>
             )
           } else if (itemA.type === "quote" && item) {
+            // Full page quote with auto-scaling typography
+            const quoteStyle = getFullPageQuoteStyle(item.text)
             return (
               <div className="w-full h-full flex items-center justify-center p-8 relative">
-                <div className="text-center">
-                  <p className="text-2xl font-serif">{item.text}</p>
+                <div className="text-center" style={{ maxWidth: quoteStyle.maxWidth }}>
+                  <p
+                    className="font-serif"
+                    style={{
+                      fontSize: quoteStyle.fontSize,
+                      lineHeight: quoteStyle.lineHeight,
+                    }}
+                  >
+                    {item.text}
+                  </p>
                   {item.said_by && (
-                    <p className="text-sm text-muted-foreground mt-4">
+                    <p
+                      className="text-muted-foreground mt-4 italic"
+                      style={{
+                        fontSize: attributionStyle.fontSize,
+                        lineHeight: attributionStyle.lineHeight,
+                      }}
+                    >
                       — {getPersonName(item.said_by)}
                     </p>
                   )}
@@ -182,7 +206,7 @@ function PageSide({
           }
         }
         // Customize message based on layout type
-        const dropMessage = layoutType === "photo" ? "Drop Photo" : "Drop Entry"
+        const dropMessage = layoutType === "photo" ? "Drop Photo" : "Drop Quote"
         return (
           <DropZone
             nodeRef={setMainNodeRef}
@@ -192,90 +216,31 @@ function PageSide({
         )
 
       case "B":
-        // Two items (top & bottom)
-        const itemTop = content[0]
-        const itemBottom = content[1]
+        // Layout B: Photo 2/3 + Quote 1/3 (photo can be top or bottom)
+        // Find photo and quote in content
+        const photoItem = content.find((c) => c.type === "photo")
+        const quoteItem = content.find((c) => c.type === "quote")
+        
+        // Determine if photo should be on top (default) or bottom
+        // If photo is first in content array, it's on top; otherwise bottom
+        const photoOnTop = !photoItem || content.indexOf(photoItem) < content.indexOf(quoteItem || content[0])
+        
         return (
           <div className="w-full h-full flex flex-col">
-            <div className="flex-1 relative border-b">
-              {itemTop ? (
+            {/* Photo area - 2/3 of page */}
+            <div className="flex-[2] relative border-b">
+              {photoItem ? (
                 <>
-                  {itemTop.type === "photo" ? (
-                    <img
-                      src={getContentItem(itemTop.id, "photo")?.url}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center p-4">
-                      <p className="text-lg font-serif">
-                        {getContentItem(itemTop.id, "quote")?.text}
-                      </p>
+                  <div className="w-full h-full p-2">
+                    <div className="w-full h-full rounded overflow-hidden">
+                      <img
+                        src={getContentItem(photoItem.id, "photo")?.url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-                  )}
-                  <RemoveButton itemId={itemTop.id} onRemove={onRemoveItem} />
-                </>
-              ) : (
-                <DropZone
-                  nodeRef={setTopNodeRef}
-                  isOver={isTopOver}
-                  message={layoutType === "photo" ? "Drop Photo" : "Drop Entry"}
-                />
-              )}
-            </div>
-            <div className="flex-1 relative">
-              {itemBottom ? (
-                <>
-                  {itemBottom.type === "photo" ? (
-                    <img
-                      src={getContentItem(itemBottom.id, "photo")?.url}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center p-4">
-                      <p className="text-lg font-serif">
-                        {getContentItem(itemBottom.id, "quote")?.text}
-                      </p>
-                    </div>
-                  )}
-                  <RemoveButton itemId={itemBottom.id} onRemove={onRemoveItem} />
-                </>
-              ) : (
-                <DropZone
-                  nodeRef={setBottomNodeRef}
-                  isOver={isBottomOver}
-                  message={layoutType === "photo" ? "Drop Photo" : "Drop Entry"}
-                />
-              )}
-            </div>
-          </div>
-        )
-
-      case "C":
-        // Photo top, quote bottom (or vice versa)
-        const itemCTop = content.find((c) => c.type === "photo") || content[0]
-        const itemCBottom =
-          content.find((c) => c.type === "quote") || content[1]
-        return (
-          <div className="w-full h-full flex flex-col">
-            <div className="flex-1 relative border-b">
-              {itemCTop ? (
-                <>
-                  {itemCTop.type === "photo" ? (
-                    <img
-                      src={getContentItem(itemCTop.id, "photo")?.url}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center p-4">
-                      <p className="text-lg font-serif">
-                        {getContentItem(itemCTop.id, "quote")?.text}
-                      </p>
-                    </div>
-                  )}
-                  <RemoveButton itemId={itemCTop.id} onRemove={onRemoveItem} />
+                  </div>
+                  <RemoveButton itemId={photoItem.id} onRemove={onRemoveItem} />
                 </>
               ) : (
                 <DropZone
@@ -285,39 +250,49 @@ function PageSide({
                 />
               )}
             </div>
+            
+            {/* Quote area - 1/3 of page */}
             <div className="flex-1 relative">
-              {itemCBottom ? (
+              {quoteItem ? (
                 <>
-                  {itemCBottom.type === "quote" ? (
-                    <div className="w-full h-full flex items-center justify-center p-4">
-                      <div className="text-center">
-                        <p className="text-xl font-serif">
-                          {getContentItem(itemCBottom.id, "quote")?.text}
-                        </p>
-                        {getContentItem(itemCBottom.id, "quote")?.said_by && (
-                          <p className="text-sm text-muted-foreground mt-2">
-                            —{" "}
-                            {getPersonName(
-                              getContentItem(itemCBottom.id, "quote")?.said_by
-                            )}
+                  <div className="w-full h-full flex items-center justify-center p-4">
+                    {(() => {
+                      const quote = getContentItem(quoteItem.id, "quote")
+                      if (!quote) return null
+                      const quoteStyle = getPartialPageQuoteStyle(quote.text)
+                      return (
+                        <div className="text-center" style={{ maxWidth: quoteStyle.maxWidth }}>
+                          <p
+                            className="font-serif"
+                            style={{
+                              fontSize: quoteStyle.fontSize,
+                              lineHeight: quoteStyle.lineHeight,
+                            }}
+                          >
+                            {quote.text}
                           </p>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <img
-                      src={getContentItem(itemCBottom.id, "photo")?.url}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  )}
-                  <RemoveButton itemId={itemCBottom.id} onRemove={onRemoveItem} />
+                          {quote.said_by && (
+                            <p
+                              className="text-muted-foreground mt-2 italic"
+                              style={{
+                                fontSize: attributionStyle.fontSize,
+                                lineHeight: attributionStyle.lineHeight,
+                              }}
+                            >
+                              — {getPersonName(quote.said_by)}
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })()}
+                  </div>
+                  <RemoveButton itemId={quoteItem.id} onRemove={onRemoveItem} />
                 </>
               ) : (
                 <DropZone
                   nodeRef={setBottomNodeRef}
                   isOver={isBottomOver}
-                  message="Drop Entry"
+                  message="Drop Quote"
                 />
               )}
             </div>

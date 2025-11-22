@@ -97,6 +97,10 @@ function DraggableQuote({
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: quote.id,
+      data: {
+        type: "quote",
+        quote: quote,
+      },
     })
 
   const style = transform

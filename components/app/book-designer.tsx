@@ -319,11 +319,14 @@ export default function BookDesigner({
     }
 
     // Determine target position (single page now)
-    const isTop = overId.includes("-top")
-    const isBottom = overId.includes("-bottom")
-    const isMain = overId.includes("page-main")
+    const isTop = overId === "page-top"
+    const isBottom = overId === "page-bottom"
+    const isMain = overId === "page-main"
 
-    if (!isMain && !isTop && !isBottom) return
+    if (!isMain && !isTop && !isBottom) {
+      console.log("Drag end: Invalid drop target", { overId, activeId })
+      return
+    }
 
     const targetLayout = layout
 

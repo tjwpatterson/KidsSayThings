@@ -202,7 +202,7 @@ function PageSide({
           if (itemA.type === "photo" && item) {
             // Full page photo with margin
             return (
-              <div className="w-full h-full relative p-3">
+              <div ref={setMainNodeRef} className="w-full h-full relative p-3">
                 <div className="w-full h-full rounded overflow-hidden">
                   <img
                     src={item.url}
@@ -217,7 +217,7 @@ function PageSide({
             // Full page quote with auto-scaling typography
             const quoteStyle = getFullPageQuoteStyle(item.text)
             return (
-              <div className="w-full h-full flex items-center justify-center p-8 relative">
+              <div ref={setMainNodeRef} className="w-full h-full flex items-center justify-center p-8 relative">
                 <div className="text-center" style={{ maxWidth: quoteStyle.maxWidth }}>
                   <p
                     className="font-serif"
@@ -249,7 +249,7 @@ function PageSide({
           <DropZone
             nodeRef={setMainNodeRef}
             isOver={isMainOver}
-            message={layout === "A" ? "Drop Photo or Quote" : "Drop content here"}
+            message="Drop Photo or Quote"
           />
         )
 

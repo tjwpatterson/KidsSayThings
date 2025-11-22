@@ -95,10 +95,11 @@ export default function BookSidebarContent({
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [dedication, setDedication] = useState(book?.dedication || "")
 
-  const filteredQuotes =
-    selectedPersonFilter === "all"
-      ? quotes || []
-      : (quotes || []).filter((q) => q.said_by === selectedPersonFilter)
+  const filteredQuotes = React.useMemo(() => {
+    if (!quotes || quotes.length === 0) return []
+    if (selectedPersonFilter === "all") return quotes
+    return quotes.filter((q) => q.said_by === selectedPersonFilter)
+  }, [quotes, selectedPersonFilter])
 
   const handleThemeChange = async (themeId: string) => {
     await onBookUpdate({ theme: themeId as "classic" | "playful" })

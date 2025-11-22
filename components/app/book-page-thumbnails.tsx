@@ -82,7 +82,7 @@ export default function BookPageThumbnails({
   }
 
   return (
-    <div className="border-t-2 bg-background flex items-center h-32 shadow-lg">
+    <div className="bg-background border rounded-lg flex items-center h-24 shadow-sm">
       {/* Left Arrow */}
       <Button
         variant="ghost"

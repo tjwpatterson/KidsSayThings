@@ -654,60 +654,55 @@ export default function BookDesigner({
               quotes={allQuotes}
               persons={initialPersons}
               totalPages={Math.max(pages.length, currentPage, 1)}
+              pages={pages}
               onLeftLayoutChange={setLeftLayout}
               onRightLayoutChange={setRightLayout}
               onRemoveItem={handleRemoveItem}
+              onPageSelect={setCurrentPage}
+              onAddPage={async () => {
+                const newPageNumber = Math.max(pages.length, currentPage, 1) + 1
+                // Create the new page immediately
+                try {
+                  const pageData = {
+                    page_number: newPageNumber,
+                    left_layout: null,
+                    right_layout: null,
+                    left_content: [],
+                    right_content: [],
+                  }
+                  
+                  const res = await fetch(`/api/books/${book.id}/pages`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(pageData),
+                  })
+                  
+                  if (res.ok) {
+                    const newPage = await res.json()
+                    setPages((prev) => [
+                      ...prev,
+                      {
+                        ...newPage,
+                        left_content: (newPage.left_content as any) || [],
+                        right_content: (newPage.right_content as any) || [],
+                      },
+                    ])
+                    setCurrentPage(newPageNumber)
+                  } else {
+                    throw new Error("Failed to create page")
+                  }
+                } catch (error) {
+                  console.error("Failed to create new page:", error)
+                  toast({
+                    title: "Error",
+                    description: "Failed to create new page",
+                    variant: "destructive",
+                  })
+                }
+              }}
             />
           </div>
         </div>
-
-        {/* Bottom Bar - Page Thumbnails */}
-        <BookPageThumbnails
-          pages={pages}
-          currentPage={currentPage}
-          onPageSelect={setCurrentPage}
-          onAddPage={async () => {
-            const newPageNumber = Math.max(pages.length, currentPage, 1) + 1
-            // Create the new page immediately
-            try {
-              const pageData = {
-                page_number: newPageNumber,
-                left_layout: null,
-                right_layout: null,
-                left_content: [],
-                right_content: [],
-              }
-              
-              const res = await fetch(`/api/books/${book.id}/pages`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(pageData),
-              })
-              
-              if (res.ok) {
-                const newPage = await res.json()
-                setPages((prev) => [
-                  ...prev,
-                  {
-                    ...newPage,
-                    left_content: (newPage.left_content as any) || [],
-                    right_content: (newPage.right_content as any) || [],
-                  },
-                ])
-                setCurrentPage(newPageNumber)
-              } else {
-                throw new Error("Failed to create page")
-              }
-            } catch (error) {
-              console.error("Failed to create new page:", error)
-              toast({
-                title: "Error",
-                description: "Failed to create new page",
-                variant: "destructive",
-              })
-            }
-          }}
-        />
       </div>
 
       {/* Drag Overlay */}

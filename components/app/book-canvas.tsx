@@ -1,6 +1,7 @@
 "use client"
 
 import BookPagePreview from "./book-page-preview"
+import BookPageThumbnails from "./book-page-thumbnails"
 import type { Book, BookPage, Entry, Person, BookPhoto, PageLayout } from "@/lib/types"
 
 interface BookCanvasProps {
@@ -12,9 +13,12 @@ interface BookCanvasProps {
   quotes: Entry[]
   persons: Person[]
   totalPages: number
+  pages: BookPage[]
   onLeftLayoutChange: (layout: PageLayout | null) => void
   onRightLayoutChange: (layout: PageLayout | null) => void
   onRemoveItem: (side: "left" | "right", itemId: string) => void
+  onPageSelect: (pageNumber: number) => void
+  onAddPage: () => void
 }
 
 export default function BookCanvas({
@@ -26,9 +30,12 @@ export default function BookCanvas({
   quotes,
   persons,
   totalPages,
+  pages,
   onLeftLayoutChange,
   onRightLayoutChange,
   onRemoveItem,
+  onPageSelect,
+  onAddPage,
 }: BookCanvasProps) {
   // Determine page type labels
   const currentPageNumber = currentPage?.page_number || 1
@@ -49,10 +56,22 @@ export default function BookCanvas({
 
   const pageLabel = getPageLabel(currentPageNumber)
 
+  const currentPageNumber = currentPage?.page_number || 1
+
   return (
     <div className="flex-1 bg-muted/10 flex flex-col">
-      <div className="flex-1 flex items-center justify-center p-4 min-h-full">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 min-h-full">
         <div className="w-full max-w-5xl">
+          {/* Page Carousel - Above Page Preview */}
+          <div className="mb-4">
+            <BookPageThumbnails
+              pages={pages}
+              currentPage={currentPageNumber}
+              onPageSelect={onPageSelect}
+              onAddPage={onAddPage}
+            />
+          </div>
+
           {/* Page Type Labels - Compact */}
           {(pageLabel.left || pageLabel.right) && (
             <div className="flex gap-2 mb-4 justify-center">

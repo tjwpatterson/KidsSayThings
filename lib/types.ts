@@ -75,6 +75,7 @@ export interface Book {
   cover_style: BookCoverStyle
   dedication: string | null
   created_at: string
+  updated_at?: string
   status: BookStatus
   pdf_url: string | null
   design_mode?: BookDesignMode

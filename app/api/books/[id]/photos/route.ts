@@ -392,27 +392,54 @@ export async function DELETE(
 
     console.log("Photo lookup (any book):", { allPhotos, allPhotosError, photoId })
 
-    // Get photo to delete file from storage
-    const { data: photo, error: photoFetchError } = await supabase
+    // Get photo to delete file from storage - try without book_id filter first if RLS might be blocking
+    let photo = null
+    let photoFetchError = null
+    
+    // First try with book_id filter
+    const { data: photoWithBook, error: errorWithBook } = await supabase
       .from("book_photos")
       .select("id, book_id, url, filename, path")
       .eq("id", photoId)
       .eq("book_id", id)
       .single()
 
-    console.log("Photo lookup (with book_id filter):", { 
+    if (photoWithBook && !errorWithBook) {
+      photo = photoWithBook
+    } else {
+      // If that fails, try without book_id filter (RLS should still protect us)
+      const { data: photoAny, error: errorAny } = await supabase
+        .from("book_photos")
+        .select("id, book_id, url, filename, path")
+        .eq("id", photoId)
+        .single()
+      
+      if (photoAny && !errorAny) {
+        // Verify it belongs to the correct book
+        if (photoAny.book_id === id) {
+          photo = photoAny
+        } else {
+          photoFetchError = { message: `Photo belongs to different book: ${photoAny.book_id}` }
+        }
+      } else {
+        photoFetchError = errorAny || errorWithBook
+      }
+    }
+
+    console.log("Photo lookup result:", { 
       photo, 
       photoFetchError, 
       photoId, 
       bookId: id,
       errorCode: photoFetchError?.code,
       errorMessage: photoFetchError?.message,
-      errorDetails: photoFetchError?.details
+      errorDetails: photoFetchError?.details,
+      allPhotosFound: allPhotos
     })
 
     if (photoFetchError || !photo) {
       // Check if photo exists but belongs to different book
-      if (allPhotos && allPhotos.length > 0) {
+      if (allPhotos && allPhotos.length > 0 && allPhotos[0].book_id !== id) {
         console.error("Photo exists but belongs to different book:", {
           photoId,
           requestedBookId: id,
@@ -421,6 +448,19 @@ export async function DELETE(
         return NextResponse.json(
           { error: `Photo not found in this book. Photo belongs to book ${allPhotos[0].book_id}` },
           { status: 404 }
+        )
+      }
+      
+      // If photo exists with correct book_id but query failed, it's likely an RLS issue
+      if (allPhotos && allPhotos.length > 0 && allPhotos[0].book_id === id) {
+        console.error("Photo exists with correct book_id but query failed - likely RLS issue:", {
+          photoId,
+          bookId: id,
+          error: photoFetchError
+        })
+        return NextResponse.json(
+          { error: `Photo found but access denied. This may be a permissions issue. PhotoId: ${photoId}, BookId: ${id}` },
+          { status: 403 }
         )
       }
       

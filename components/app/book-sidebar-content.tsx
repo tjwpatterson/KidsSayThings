@@ -13,11 +13,12 @@ import { Upload } from "lucide-react"
 import BookPhotoCarousel from "./book-photo-carousel"
 import BookQuoteCarousel from "./book-quote-carousel"
 import BookPhotoUpload from "./book-photo-upload"
+import BookLayoutSelectorVisual from "./book-layout-selector-visual"
 import ThemePreviewCard from "./theme-preview-card"
 import CoverStylePreview from "./cover-style-preview"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import type { Entry, Person, BookPhoto, BookThemeConfig, Book } from "@/lib/types"
+import type { Entry, Person, BookPhoto, BookThemeConfig, Book, PageLayout } from "@/lib/types"
 
 const themes: BookThemeConfig[] = [
   {
@@ -64,7 +65,7 @@ const themes: BookThemeConfig[] = [
   },
 ]
 
-type SidebarTab = "photos" | "quotes" | "theme" | "settings"
+type SidebarTab = "photos" | "quotes" | "layouts" | "theme" | "settings"
 
 interface BookSidebarContentProps {
   activeTab: SidebarTab
@@ -77,6 +78,10 @@ interface BookSidebarContentProps {
   onPersonFilterChange: (personId: string) => void
   onPhotosUploaded: (photos: BookPhoto[]) => void
   onBookUpdate: (updates: Partial<Book>) => Promise<void>
+  leftLayout?: PageLayout | null
+  rightLayout?: PageLayout | null
+  onLeftLayoutChange?: (layout: PageLayout | null) => void
+  onRightLayoutChange?: (layout: PageLayout | null) => void
 }
 
 export default function BookSidebarContent({
@@ -90,6 +95,10 @@ export default function BookSidebarContent({
   onPersonFilterChange,
   onPhotosUploaded,
   onBookUpdate,
+  leftLayout,
+  rightLayout,
+  onLeftLayoutChange,
+  onRightLayoutChange,
 }: BookSidebarContentProps) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [dedication, setDedication] = useState(book.dedication || "")
@@ -183,6 +192,40 @@ export default function BookSidebarContent({
         </div>
         <div className="flex-1 overflow-y-auto">
           <BookQuoteCarousel quotes={filteredQuotes} persons={persons} />
+        </div>
+      </div>
+    )
+  }
+
+  if (activeTab === "layouts") {
+    return (
+      <div className="flex-1 border-r bg-muted/30 flex flex-col overflow-y-auto min-w-[200px]">
+        <div className="p-4 space-y-6">
+          <div>
+            <h3 className="text-sm font-semibold mb-3">Left Page Layout</h3>
+            {onLeftLayoutChange ? (
+              <BookLayoutSelectorVisual
+                selected={leftLayout || null}
+                onSelect={onLeftLayoutChange}
+                type="photo"
+              />
+            ) : (
+              <div className="text-sm text-muted-foreground">Layout controls not available</div>
+            )}
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold mb-3">Right Page Layout</h3>
+            {onRightLayoutChange ? (
+              <BookLayoutSelectorVisual
+                selected={rightLayout || null}
+                onSelect={onRightLayoutChange}
+                type="quote"
+              />
+            ) : (
+              <div className="text-sm text-muted-foreground">Layout controls not available</div>
+            )}
+          </div>
         </div>
       </div>
     )

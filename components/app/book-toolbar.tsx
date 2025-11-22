@@ -3,11 +3,9 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Undo2, Redo2, Cloud, Share2, Sparkles, ZoomIn, ZoomOut, Maximize2, Layout } from "lucide-react"
+import { Undo2, Redo2, Cloud, Share2, Sparkles, ZoomIn, ZoomOut, Maximize2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import BookLayoutSelectorVisual from "./book-layout-selector-visual"
-import type { Book, PageLayout } from "@/lib/types"
+import type { Book } from "@/lib/types"
 
 interface BookToolbarProps {
   book: Book
@@ -16,10 +14,6 @@ interface BookToolbarProps {
   saving?: boolean
   zoom?: number
   onZoomChange?: (zoom: number) => void
-  leftLayout?: PageLayout | null
-  rightLayout?: PageLayout | null
-  onLeftLayoutChange?: (layout: PageLayout | null) => void
-  onRightLayoutChange?: (layout: PageLayout | null) => void
 }
 
 export default function BookToolbar({
@@ -29,13 +23,8 @@ export default function BookToolbar({
   saving = false,
   zoom = 100,
   onZoomChange,
-  leftLayout,
-  rightLayout,
-  onLeftLayoutChange,
-  onRightLayoutChange,
 }: BookToolbarProps) {
   const [title, setTitle] = useState(book.title || "")
-  const [layoutPopoverOpen, setLayoutPopoverOpen] = useState(false)
   const { toast } = useToast()
 
   const handleZoomIn = () => {
@@ -78,7 +67,7 @@ export default function BookToolbar({
 
   return (
     <div className="border-b bg-background px-4 py-2 flex items-center justify-between gap-4">
-      {/* Left side - Undo/Redo, Layouts */}
+      {/* Left side - Undo/Redo */}
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
           <Undo2 className="h-4 w-4" />
@@ -86,38 +75,6 @@ export default function BookToolbar({
         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
           <Redo2 className="h-4 w-4" />
         </Button>
-        
-        {/* Layout Selector Popover */}
-        {onLeftLayoutChange && onRightLayoutChange && (
-          <Popover open={layoutPopoverOpen} onOpenChange={setLayoutPopoverOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Layout className="h-4 w-4" />
-                Layouts
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-96" align="start">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <h4 className="text-sm font-semibold">Left Page Layout</h4>
-                  <BookLayoutSelectorVisual
-                    selected={leftLayout || null}
-                    onSelect={onLeftLayoutChange}
-                    type="photo"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <h4 className="text-sm font-semibold">Right Page Layout</h4>
-                  <BookLayoutSelectorVisual
-                    selected={rightLayout || null}
-                    onSelect={onRightLayoutChange}
-                    type="quote"
-                  />
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-        )}
       </div>
 
       {/* Center - Book Title */}

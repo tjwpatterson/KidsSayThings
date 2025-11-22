@@ -21,7 +21,7 @@ import BookPageThumbnails from "./book-page-thumbnails"
 import ResizableSidebar from "./resizable-sidebar"
 import { createClient } from "@/lib/supabase/client"
 
-type SidebarTab = "photos" | "quotes" | "theme" | "settings"
+type SidebarTab = "photos" | "quotes" | "layouts" | "theme" | "settings"
 
 interface BookDesignerProps {
   book: Book
@@ -613,10 +613,6 @@ export default function BookDesigner({
           saving={saving}
           zoom={zoom}
           onZoomChange={setZoom}
-          leftLayout={leftLayout}
-          rightLayout={rightLayout}
-          onLeftLayoutChange={setLeftLayout}
-          onRightLayoutChange={setRightLayout}
         />
 
         {/* Main Content Area */}
@@ -640,6 +636,10 @@ export default function BookDesigner({
               onPersonFilterChange={setSelectedPersonFilter}
               onPhotosUploaded={handlePhotosUploaded}
               onBookUpdate={handleBookUpdate}
+              leftLayout={leftLayout}
+              rightLayout={rightLayout}
+              onLeftLayoutChange={setLeftLayout}
+              onRightLayoutChange={setRightLayout}
             />
           </ResizableSidebar>
 

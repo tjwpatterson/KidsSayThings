@@ -424,19 +424,16 @@ export async function generateManualBookPDF({
   }
 
   // Render a single page side (left or right) - each side is a full 6x9 PDF page
+  // Note: This function does NOT add a new page - caller must add page before calling
   const renderPageSide = async (
     layout: PageLayout | null,
     content: PageContentItem[],
     isLeft: boolean
   ) => {
     if (!layout) {
-      // Empty page side - add blank page
-      addPage()
+      // Empty page side - render nothing (page already added by caller)
       return
     }
-
-    // Add new page for this side (each side is a separate PDF page)
-    addPage()
 
     switch (layout) {
       case "A":
@@ -579,54 +576,46 @@ export async function generateManualBookPDF({
   }
 
   // Render all pages
-  // Page 1: Cover (left) + Title page (right) on same spread
-  renderCover() // Left side (cover)
-  
-  // Render title page on right side of page 1
-  const page1 = pages.find((p) => p.page_number === 1)
-  if (page1 && page1.right_layout) {
-    await renderPageSide(page1.right_layout, page1.right_content || [], false)
-  } else {
-    // Default title page
-    doc.setFontSize(isClassic ? 36 : 40)
-    doc.setTextColor(0, 0, 0)
-    doc.setFont(isClassic ? "times" : "helvetica", "bold")
-    const titleY = height / 2 - 80
-    doc.text(book.title || "SaySo", width / 2, titleY, {
-      align: "center",
-      maxWidth: width - contentMargin * 2,
-    })
+  // Sort pages by page_number
+  const sortedPages = [...pages].sort((a, b) => a.page_number - b.page_number)
 
-    if (book.dedication) {
-      doc.setFontSize(13)
-      doc.setTextColor(51, 51, 51)
-      doc.setFont("times", "italic")
-      const dedicationLines = doc.splitTextToSize(book.dedication, width - contentMargin * 2 - 60)
-      doc.text(dedicationLines, width / 2, titleY + 120, {
-        align: "center",
-        maxWidth: width - contentMargin * 2 - 60,
-      })
-    }
-  }
-
-  // Sort pages by page_number, skip page 1 (already rendered)
-  const sortedPages = [...pages]
-    .filter((p) => p.page_number > 1)
-    .sort((a, b) => a.page_number - b.page_number)
-
-  // Render remaining pages as two-page spreads
-  // Each BookPage represents a physical spread (left + right)
+  // Render each page spread (left + right sides)
   for (const page of sortedPages) {
-    addPage()
-    
-    // Render left page (left half of spread)
+    // Render left side
     if (page.left_layout) {
+      addPage() // Add new page for left side
       await renderPageSide(page.left_layout, page.left_content || [], true)
+    } else if (page.page_number === 1) {
+      // Page 1 left side is always cover
+      renderCover()
     }
 
-    // Render right page (right half of spread)
+    // Render right side
     if (page.right_layout) {
+      addPage() // Add new page for right side
       await renderPageSide(page.right_layout, page.right_content || [], false)
+    } else if (page.page_number === 1) {
+      // Page 1 right side is title page (if no layout specified)
+      addPage()
+      doc.setFontSize(isClassic ? 36 : 40)
+      doc.setTextColor(0, 0, 0)
+      doc.setFont(isClassic ? "times" : "helvetica", "bold")
+      const titleY = height / 2 - 80
+      doc.text(book.title || "SaySo", width / 2, titleY, {
+        align: "center",
+        maxWidth: width - contentMargin * 2,
+      })
+
+      if (book.dedication) {
+        doc.setFontSize(13)
+        doc.setTextColor(51, 51, 51)
+        doc.setFont("times", "italic")
+        const dedicationLines = doc.splitTextToSize(book.dedication, width - contentMargin * 2 - 60)
+        doc.text(dedicationLines, width / 2, titleY + 120, {
+          align: "center",
+          maxWidth: width - contentMargin * 2 - 60,
+        })
+      }
     }
   }
 

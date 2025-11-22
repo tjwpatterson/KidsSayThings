@@ -613,6 +613,10 @@ export default function BookDesigner({
           saving={saving}
           zoom={zoom}
           onZoomChange={setZoom}
+          leftLayout={leftLayout}
+          rightLayout={rightLayout}
+          onLeftLayoutChange={setLeftLayout}
+          onRightLayoutChange={setRightLayout}
         />
 
         {/* Main Content Area */}

@@ -1,7 +1,6 @@
 "use client"
 
 import BookPagePreview from "./book-page-preview"
-import BookLayoutSelectorVisual from "./book-layout-selector-visual"
 import type { Book, BookPage, Entry, Person, BookPhoto, PageLayout } from "@/lib/types"
 
 interface BookCanvasProps {
@@ -54,51 +53,21 @@ export default function BookCanvas({
     <div className="flex-1 bg-muted/10 flex flex-col">
       <div className="flex-1 flex items-center justify-center p-4 min-h-full">
         <div className="w-full max-w-5xl">
-          {/* Compact Header with Page Labels and Layout Selectors */}
-          <div className="mb-3">
-            {/* Page Type Labels - Compact */}
-            {(pageLabel.left || pageLabel.right) && (
-              <div className="flex gap-2 mb-3 justify-center">
-                {pageLabel.left && (
-                  <div className="px-3 py-1 bg-primary text-primary-foreground rounded text-xs font-semibold">
-                    {pageLabel.left}
-                  </div>
-                )}
-                {pageLabel.right && (
-                  <div className="px-3 py-1 bg-primary text-primary-foreground rounded text-xs font-semibold">
-                    {pageLabel.right}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Layout Selectors - More Compact */}
-            <div className="grid grid-cols-2 gap-3">
-              {/* Left Page Layout */}
-              <div>
-                <div className="mb-1.5 text-xs font-medium text-muted-foreground">
-                  Left Layout
+          {/* Page Type Labels - Compact */}
+          {(pageLabel.left || pageLabel.right) && (
+            <div className="flex gap-2 mb-4 justify-center">
+              {pageLabel.left && (
+                <div className="px-3 py-1 bg-primary text-primary-foreground rounded text-xs font-semibold">
+                  {pageLabel.left}
                 </div>
-                <BookLayoutSelectorVisual
-                  selected={leftLayout}
-                  onSelect={onLeftLayoutChange}
-                  type="photo"
-                />
-              </div>
-
-              {/* Right Page Layout */}
-              <div>
-                <div className="mb-1.5 text-xs font-medium text-muted-foreground">
-                  Right Layout
+              )}
+              {pageLabel.right && (
+                <div className="px-3 py-1 bg-primary text-primary-foreground rounded text-xs font-semibold">
+                  {pageLabel.right}
                 </div>
-                <BookLayoutSelectorVisual
-                  selected={rightLayout}
-                  onSelect={onRightLayoutChange}
-                  type="quote"
-                />
-              </div>
+              )}
             </div>
-          </div>
+          )}
 
           {/* Two-Page Spread Preview */}
           <div className="flex justify-center">

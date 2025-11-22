@@ -391,7 +391,7 @@ export async function DELETE(
     // Get photo to delete file from storage
     // Note: path column may not exist in older databases, so we handle it gracefully
     // First try with path column, then fall back to without it
-    let photo = null
+    let photo: { id: string; book_id: string; url: string; filename: string | null; path?: string | null } | null = null
     let photoFetchError = null
     
     try {
@@ -403,7 +403,7 @@ export async function DELETE(
         .single()
       
       if (photoData && !error) {
-        photo = photoData
+        photo = photoData as typeof photo
       } else {
         photoFetchError = error
       }
@@ -419,7 +419,7 @@ export async function DELETE(
           .single()
         
         if (photoData && !error) {
-          photo = photoData
+          photo = { ...photoData, path: undefined } as typeof photo
         } else {
           photoFetchError = error
         }
@@ -469,7 +469,7 @@ export async function DELETE(
     // Delete from storage if path or filename exists
     if (photo.path || photo.filename) {
       // Prefer path if available, otherwise construct from filename
-      const filePath = photo.path || `books/${id}/photos/${photo.filename}`
+      const filePath = (photo.path as string | undefined) || `books/${id}/photos/${photo.filename}`
       await serviceClient.storage.from("attachments").remove([filePath])
     }
 

@@ -69,12 +69,12 @@ type SidebarTab = "photos" | "quotes" | "theme" | "settings"
 
 interface BookSidebarContentProps {
   activeTab: SidebarTab
-  quotes: Entry[]
-  photos: BookPhoto[]
-  persons: Person[]
+  quotes?: Entry[]
+  photos?: BookPhoto[]
+  persons?: Person[]
   book: Book
   bookId: string
-  selectedPersonFilter: string
+  selectedPersonFilter?: string
   onPersonFilterChange: (personId: string) => void
   onPhotosUploaded: (photos: BookPhoto[]) => void
   onBookUpdate: (updates: Partial<Book>) => Promise<void>
@@ -82,23 +82,23 @@ interface BookSidebarContentProps {
 
 export default function BookSidebarContent({
   activeTab,
-  quotes,
-  photos,
-  persons,
+  quotes = [],
+  photos = [],
+  persons = [],
   book,
   bookId,
-  selectedPersonFilter,
+  selectedPersonFilter = "all",
   onPersonFilterChange,
   onPhotosUploaded,
   onBookUpdate,
 }: BookSidebarContentProps) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
-  const [dedication, setDedication] = useState(book.dedication || "")
+  const [dedication, setDedication] = useState(book?.dedication || "")
 
   const filteredQuotes =
     selectedPersonFilter === "all"
-      ? quotes
-      : quotes.filter((q) => q.said_by === selectedPersonFilter)
+      ? quotes || []
+      : (quotes || []).filter((q) => q.said_by === selectedPersonFilter)
 
   const handleThemeChange = async (themeId: string) => {
     await onBookUpdate({ theme: themeId as "classic" | "playful" })

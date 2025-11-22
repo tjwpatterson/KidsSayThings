@@ -10,42 +10,46 @@ import type {
   PageLayout,
   PageContentItem,
 } from "@/lib/types"
-import { X } from "lucide-react"
+import { X, LayoutGrid } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   getFullPageQuoteStyle,
   getPartialPageQuoteStyle,
   attributionStyle,
 } from "@/lib/typography"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import BookLayoutSelectorVisual from "./book-layout-selector-visual"
 
 interface BookPagePreviewProps {
   book: Book
   page: BookPage | undefined
-  leftLayout: PageLayout | null
-  rightLayout: PageLayout | null
+  layout: PageLayout | null
   photos: BookPhoto[]
   quotes: Entry[]
   persons: Person[]
-  onRemoveItem: (side: "left" | "right", itemId: string) => void
+  onLayoutChange: (layout: PageLayout | null) => void
+  onRemoveItem: (itemId: string) => void
 }
 
 export default function BookPagePreview({
   book,
   page,
-  leftLayout,
-  rightLayout,
+  layout,
   photos,
   quotes,
   persons,
+  onLayoutChange,
   onRemoveItem,
 }: BookPagePreviewProps) {
   // Calculate page dimensions (6"w x 9"h scaled to realistic size)
-  // For 6x9 book: width=6, height=9, so aspect ratio is 6:9 = 2:3
-  // Scale to a more realistic size that doesn't dominate the screen
   const bookAspectRatio = 6 / 9 // width/height = 0.667
-  const maxDisplayWidth = 320 // Smaller, more realistic width for a single page (was 600)
+  const maxDisplayWidth = 400 // Larger for single page view
   const pageWidth = maxDisplayWidth
-  const pageHeight = pageWidth / bookAspectRatio // ~480px for 320px width
+  const pageHeight = pageWidth / bookAspectRatio // ~600px for 400px width
 
   const getPersonName = (personId: string | null) => {
     if (!personId) return null
@@ -60,41 +64,81 @@ export default function BookPagePreview({
     }
   }
 
-  return (
-    <div className="flex gap-3 items-start">
-      {/* Left Page */}
-      <div
-        className="bg-white shadow-xl rounded-lg border-2 border-border shrink-0"
-        style={{ width: `${pageWidth}px`, height: `${pageHeight}px` }}
-      >
-        <PageSide
-          side="left"
-          layout={leftLayout}
-          content={page?.left_content || []}
-          getContentItem={getContentItem}
-          getPersonName={getPersonName}
-          pageWidth={pageWidth}
-          pageHeight={pageHeight}
-          onRemoveItem={(itemId) => onRemoveItem("left", itemId)}
-          layoutType="photo"
-        />
-      </div>
+  const content = page?.left_content || [] // Use left_content for single page
 
-      {/* Right Page */}
+  return (
+    <div className="relative">
+      {/* Single Page Preview */}
       <div
-        className="bg-white shadow-xl rounded-lg border-2 border-border shrink-0"
+        className="bg-white shadow-xl rounded-lg border-2 border-border mx-auto relative"
         style={{ width: `${pageWidth}px`, height: `${pageHeight}px` }}
       >
+        {/* Layout Selector Button - appears when no layout or as badge when layout selected */}
+        <div className="absolute top-4 right-4 z-10">
+          {layout ? (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 bg-background/95 backdrop-blur-sm"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                  <span className="text-xs">
+                    {layout === "A" ? "Full Page" : "Photo + Quote"}
+                  </span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="end">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3">Page Layout</h4>
+                    <BookLayoutSelectorVisual
+                      selected={layout}
+                      onSelect={onLayoutChange}
+                      type="photo"
+                    />
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                  Choose Page Layout
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="end">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3">Choose Page Layout</h4>
+                    <BookLayoutSelectorVisual
+                      selected={null}
+                      onSelect={onLayoutChange}
+                      type="photo"
+                    />
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
+
+        {/* Page Content */}
         <PageSide
-          side="right"
-          layout={rightLayout}
-          content={page?.right_content || []}
+          layout={layout}
+          content={content}
           getContentItem={getContentItem}
           getPersonName={getPersonName}
           pageWidth={pageWidth}
           pageHeight={pageHeight}
-          onRemoveItem={(itemId) => onRemoveItem("right", itemId)}
-          layoutType="quote"
+          onRemoveItem={onRemoveItem}
         />
       </div>
     </div>
@@ -102,7 +146,6 @@ export default function BookPagePreview({
 }
 
 function PageSide({
-  side,
   layout,
   content,
   getContentItem,
@@ -110,9 +153,7 @@ function PageSide({
   pageWidth,
   pageHeight,
   onRemoveItem,
-  layoutType,
 }: {
-  side: "left" | "right"
   layout: PageLayout | null
   content: PageContentItem[]
   getContentItem: (id: string, type: "photo" | "quote") => any
@@ -120,21 +161,20 @@ function PageSide({
   pageWidth: number
   pageHeight: number
   onRemoveItem: (itemId: string) => void
-  layoutType: "photo" | "quote"
 }) {
   // Main drop zone for layout A
   const { setNodeRef: setMainNodeRef, isOver: isMainOver } = useDroppable({
-    id: `${side}-page-main`,
+    id: "page-main",
   })
 
-  // Top drop zone for layouts B and C
+  // Top drop zone for layout B
   const { setNodeRef: setTopNodeRef, isOver: isTopOver } = useDroppable({
-    id: `${side}-page-top`,
+    id: "page-top",
   })
 
-  // Bottom drop zone for layouts B and C
+  // Bottom drop zone for layout B
   const { setNodeRef: setBottomNodeRef, isOver: isBottomOver } = useDroppable({
-    id: `${side}-page-bottom`,
+    id: "page-bottom",
   })
 
   if (!layout) {
@@ -146,7 +186,7 @@ function PageSide({
         }`}
       >
         <span className="text-sm text-muted-foreground">
-          Select a layout option
+          Choose a layout to get started
         </span>
       </div>
     )
@@ -155,12 +195,12 @@ function PageSide({
   const renderLayout = () => {
     switch (layout) {
       case "A":
-        // Layout A: Full page photo with small margin OR full page quote
+        // Full page layout
         const itemA = content[0]
         if (itemA) {
           const item = getContentItem(itemA.id, itemA.type)
           if (itemA.type === "photo" && item) {
-            // Full page photo with margin (CSS cropping)
+            // Full page photo with margin
             return (
               <div className="w-full h-full relative p-3">
                 <div className="w-full h-full rounded overflow-hidden">
@@ -205,25 +245,18 @@ function PageSide({
             )
           }
         }
-        // Customize message based on layout type
-        const dropMessage = layoutType === "photo" ? "Drop Photo" : "Drop Quote"
         return (
           <DropZone
             nodeRef={setMainNodeRef}
             isOver={isMainOver}
-            message={dropMessage}
+            message={layout === "A" ? "Drop Photo or Quote" : "Drop content here"}
           />
         )
 
       case "B":
-        // Layout B: Photo 2/3 + Quote 1/3 (photo can be top or bottom)
-        // Find photo and quote in content
+        // Photo 2/3 + Quote 1/3
         const photoItem = content.find((c) => c.type === "photo")
         const quoteItem = content.find((c) => c.type === "quote")
-        
-        // Determine if photo should be on top (default) or bottom
-        // If photo is first in content array, it's on top; otherwise bottom
-        const photoOnTop = !photoItem || content.indexOf(photoItem) < content.indexOf(quoteItem || content[0])
         
         return (
           <div className="w-full h-full flex flex-col">

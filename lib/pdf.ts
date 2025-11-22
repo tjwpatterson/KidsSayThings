@@ -575,27 +575,24 @@ export async function generateManualBookPDF({
     }
   }
 
-  // Render all pages
+  // Render all pages (single page layout)
   // Sort pages by page_number
   const sortedPages = [...pages].sort((a, b) => a.page_number - b.page_number)
 
-  // Render each page spread (left + right sides)
+  // Render each page (single page, not spread)
   for (const page of sortedPages) {
-    // Render left side
-    if (page.left_layout) {
-      addPage() // Add new page for left side
-      await renderPageSide(page.left_layout, page.left_content || [], true)
-    } else if (page.page_number === 1) {
-      // Page 1 left side is always cover
+    if (page.page_number === 1) {
+      // Page 1 is cover
       renderCover()
+      continue
     }
 
-    // Render right side
-    if (page.right_layout) {
-      addPage() // Add new page for right side
-      await renderPageSide(page.right_layout, page.right_content || [], false)
-    } else if (page.page_number === 1) {
-      // Page 1 right side is title page (if no layout specified)
+    // Render page content
+    if (page.left_layout) {
+      addPage() // Add new page
+      await renderPageSide(page.left_layout, page.left_content || [], false)
+    } else if (page.page_number === 2) {
+      // Page 2 is title page (if no layout specified)
       addPage()
       doc.setFontSize(isClassic ? 36 : 40)
       doc.setTextColor(0, 0, 0)
@@ -616,6 +613,9 @@ export async function generateManualBookPDF({
           maxWidth: width - contentMargin * 2 - 60,
         })
       }
+    } else {
+      // Empty page - add blank page
+      addPage()
     }
   }
 

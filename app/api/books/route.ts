@@ -66,11 +66,20 @@ export async function POST(request: Request) {
       theme = "classic",
       cover_style = "linen",
       dedication,
+      page_count = 24,
     } = body
 
     if (!date_start || !date_end) {
       return NextResponse.json(
         { error: "Date range is required" },
+        { status: 400 }
+      )
+    }
+
+    // Validate page count
+    if (![24, 40, 60].includes(page_count)) {
+      return NextResponse.json(
+        { error: "Page count must be 24, 40, or 60" },
         { status: 400 }
       )
     }
@@ -92,6 +101,29 @@ export async function POST(request: Request) {
       .single()
 
     if (bookError) throw bookError
+
+    // Create initial pages for the book
+    // Page 1 is cover/title, so we create pages 1 through page_count
+    const pagesToCreate = []
+    for (let i = 1; i <= page_count; i++) {
+      pagesToCreate.push({
+        book_id: book.id,
+        page_number: i,
+        left_layout: null,
+        right_layout: null,
+        left_content: [],
+        right_content: [],
+      })
+    }
+
+    const { error: pagesError } = await supabase
+      .from("book_pages")
+      .insert(pagesToCreate)
+
+    if (pagesError) {
+      console.error("Error creating initial pages:", pagesError)
+      // Don't fail the request, but log the error
+    }
 
     return NextResponse.json(book)
   } catch (error: any) {

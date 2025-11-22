@@ -48,8 +48,7 @@ export default function BookDesigner({
   const [pages, setPages] = useState<BookPage[]>(initialPages)
   const [allPhotos, setAllPhotos] = useState<BookPhoto[]>(initialPhotos)
   const [allQuotes, setAllQuotes] = useState<Entry[]>(initialEntries)
-  const [leftLayout, setLeftLayout] = useState<PageLayout | null>(null)
-  const [rightLayout, setRightLayout] = useState<PageLayout | null>(null)
+  const [layout, setLayout] = useState<PageLayout | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null)
@@ -110,17 +109,13 @@ export default function BookDesigner({
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [currentPage, pages.length])
 
-  // Get used item IDs from all pages
+  // Get used item IDs from all pages (using left_content for single page)
   const getUsedItemIds = () => {
     const usedPhotoIds = new Set<string>()
     const usedQuoteIds = new Set<string>()
 
     pages.forEach((page) => {
       page.left_content?.forEach((item) => {
-        if (item.type === "photo") usedPhotoIds.add(item.id)
-        else usedQuoteIds.add(item.id)
-      })
-      page.right_content?.forEach((item) => {
         if (item.type === "photo") usedPhotoIds.add(item.id)
         else usedQuoteIds.add(item.id)
       })
@@ -137,14 +132,12 @@ export default function BookDesigner({
   // Get current page data
   const currentPageData = pages.find((p) => p.page_number === currentPage)
 
-  // Initialize current page layouts
+  // Initialize current page layout
   useEffect(() => {
     if (currentPageData) {
-      setLeftLayout(currentPageData.left_layout)
-      setRightLayout(currentPageData.right_layout)
+      setLayout(currentPageData.left_layout) // Use left_layout for single page
     } else {
-      setLeftLayout(null)
-      setRightLayout(null)
+      setLayout(null)
     }
   }, [currentPageData, currentPage])
 
@@ -175,11 +168,11 @@ export default function BookDesigner({
   }, [book.id, toast])
 
   // Auto-save page function
-  const savePage = useCallback(async (pageDataOverride?: { left_content?: PageContentItem[], right_content?: PageContentItem[] }) => {
+  const savePage = useCallback(async (pageDataOverride?: { content?: PageContentItem[] }) => {
     // Get the latest page data from state
     const latestPageData = pages.find((p) => p.page_number === currentPage)
     
-    if (!latestPageData && !leftLayout && !rightLayout) {
+    if (!latestPageData && !layout) {
       return // Don't save empty pages
     }
 
@@ -187,10 +180,10 @@ export default function BookDesigner({
     try {
       const pageData = {
         page_number: currentPage,
-        left_layout: leftLayout,
-        right_layout: rightLayout,
-        left_content: pageDataOverride?.left_content ?? latestPageData?.left_content ?? [],
-        right_content: pageDataOverride?.right_content ?? latestPageData?.right_content ?? [],
+        left_layout: layout, // Use left_layout for single page
+        right_layout: null, // Always null for single page
+        left_content: pageDataOverride?.content ?? latestPageData?.left_content ?? [],
+        right_content: [], // Always empty for single page
       }
 
       console.log("Saving page:", pageData)
@@ -210,10 +203,8 @@ export default function BookDesigner({
       const savedPage = await res.json()
       console.log("Page saved successfully:", savedPage)
       console.log("Saved page content:", {
-        left: savedPage.left_content,
-        right: savedPage.right_content,
-        expectedLeft: pageData.left_content,
-        expectedRight: pageData.right_content,
+        content: savedPage.left_content,
+        expectedContent: pageData.left_content,
       })
 
       // Update local state with saved page - use the content we sent, not what came back (in case API has issues)
@@ -224,16 +215,20 @@ export default function BookDesigner({
           // Use the content we sent to the API, not what came back (defensive)
           updated[existingIndex] = {
             ...savedPage,
+            left_layout: pageData.left_layout,
+            right_layout: null,
             left_content: pageData.left_content, // Use what we sent
-            right_content: pageData.right_content, // Use what we sent
+            right_content: [], // Always empty for single page
           }
           console.log("Updated page state:", updated[existingIndex])
           return updated
         }
         return [...prev, {
           ...savedPage,
+          left_layout: pageData.left_layout,
+          right_layout: null,
           left_content: pageData.left_content,
-          right_content: pageData.right_content,
+          right_content: [],
         }]
       })
     } catch (error: any) {
@@ -246,7 +241,7 @@ export default function BookDesigner({
     } finally {
       setSaving(false)
     }
-  }, [currentPage, leftLayout, rightLayout, pages, book.id, toast])
+  }, [currentPage, layout, pages, book.id, toast])
 
   // Debounced auto-save
   useEffect(() => {
@@ -265,7 +260,7 @@ export default function BookDesigner({
         clearTimeout(timeout)
       }
     }
-  }, [leftLayout, rightLayout, currentPage, savePage])
+  }, [layout, currentPage, savePage, saveTimeout, activeId])
 
   // Auto-generate book
   const handleAutoGenerate = useCallback(async () => {
@@ -323,16 +318,14 @@ export default function BookDesigner({
       return
     }
 
-    // Determine target page side and position
-    const isLeftPage = overId.includes("left-")
-    const isRightPage = overId.includes("right-")
+    // Determine target position (single page now)
     const isTop = overId.includes("-top")
     const isBottom = overId.includes("-bottom")
+    const isMain = overId.includes("page-main")
 
-    if (!isLeftPage && !isRightPage) return
+    if (!isMain && !isTop && !isBottom) return
 
-    const targetSide = isLeftPage ? "left" : "right"
-    const targetLayout = targetSide === "left" ? leftLayout : rightLayout
+    const targetLayout = layout
 
     // Check layout constraints for simplified layouts:
     // Layout A: Full page (photo OR quote) - accepts either
@@ -388,29 +381,21 @@ export default function BookDesigner({
     }
 
     // Calculate updated content before state update to pass to savePage
-    let updatedLeftContent: PageContentItem[] = []
-    let updatedRightContent: PageContentItem[] = []
+    let updatedContent: PageContentItem[] = []
 
     setPages((prev) => {
       const existing = prev.find((p) => p.page_number === currentPage)
       if (existing) {
         const updated = { ...existing }
-        const content = targetSide === "left" ? updated.left_content : updated.right_content
+        const content = updated.left_content || []
 
         if (targetLayout === "A") {
-          if (targetSide === "left") {
-            updated.left_content = [contentItem]
-            updatedLeftContent = [contentItem]
-            updatedRightContent = updated.right_content || []
-          } else {
-            updated.right_content = [contentItem]
-            updatedLeftContent = updated.left_content || []
-            updatedRightContent = [contentItem]
-          }
+          // Layout A: Full page - replace with single item
+          updated.left_content = [contentItem]
+          updatedContent = [contentItem]
         } else if (targetLayout === "B") {
           // Layout B: Photo 2/3 + Quote 1/3
-          // Photo goes in top area, quote goes in bottom area
-          const newContent = [...(content || [])]
+          const newContent = [...content]
           
           if (isPhoto && isTop) {
             // Replace or add photo in top position
@@ -418,7 +403,6 @@ export default function BookDesigner({
             if (existingPhotoIndex >= 0) {
               newContent[existingPhotoIndex] = contentItem
             } else {
-              // Add photo at beginning
               newContent.unshift(contentItem)
             }
           } else if (isQuote && isBottom) {
@@ -427,7 +411,6 @@ export default function BookDesigner({
             if (existingQuoteIndex >= 0) {
               newContent[existingQuoteIndex] = contentItem
             } else {
-              // Add quote at end
               newContent.push(contentItem)
             }
           } else {
@@ -435,15 +418,12 @@ export default function BookDesigner({
             newContent.push(contentItem)
           }
           
-          if (targetSide === "left") {
-            updated.left_content = newContent
-            updatedLeftContent = newContent
-            updatedRightContent = updated.right_content || []
-          } else {
-            updated.right_content = newContent
-            updatedLeftContent = updated.left_content || []
-            updatedRightContent = newContent
-          }
+          updated.left_content = newContent
+          updatedContent = newContent
+        } else {
+          // No layout - just add to content
+          updated.left_content = [...content, contentItem]
+          updatedContent = [...content, contentItem]
         }
 
         return prev.map((p) => (p.page_number === currentPage ? updated : p))
@@ -452,31 +432,28 @@ export default function BookDesigner({
           id: "",
           book_id: book.id,
           page_number: currentPage,
-          left_layout: leftLayout,
-          right_layout: rightLayout,
-          left_content: targetSide === "left" ? [contentItem] : [],
-          right_content: targetSide === "right" ? [contentItem] : [],
+          left_layout: layout,
+          right_layout: null,
+          left_content: [contentItem],
+          right_content: [],
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         }
-        updatedLeftContent = newPage.left_content || []
-        updatedRightContent = newPage.right_content || []
+        updatedContent = [contentItem]
         return [...prev, newPage]
       }
     })
 
-    // Save immediately with the updated content to prevent disappearing
-    // Use a shorter timeout and clear any pending auto-save
+    // Save immediately with the updated content
     if (saveTimeout) {
       clearTimeout(saveTimeout)
       setSaveTimeout(null)
     }
     
     setTimeout(() => {
-      console.log("Saving drag result:", { updatedLeftContent, updatedRightContent, currentPage })
+      console.log("Saving drag result:", { updatedContent, currentPage })
       savePage({
-        left_content: updatedLeftContent,
-        right_content: updatedRightContent,
+        content: updatedContent,
       })
     }, 50)
   }
@@ -514,7 +491,7 @@ export default function BookDesigner({
   }
 
   // Remove item from page
-  const handleRemoveItem = (side: "left" | "right", itemId: string) => {
+  const handleRemoveItem = (itemId: string) => {
     // Clear any pending auto-save to prevent overwriting
     if (saveTimeout) {
       clearTimeout(saveTimeout)
@@ -526,31 +503,15 @@ export default function BookDesigner({
       if (!existing) return prev
 
       const updated = { ...existing }
-      if (side === "left") {
-        updated.left_content = (updated.left_content || []).filter(
-          (item) => item.id !== itemId
-        )
-      } else {
-        updated.right_content = (updated.right_content || []).filter(
-          (item) => item.id !== itemId
-        )
-      }
+      updated.left_content = (updated.left_content || []).filter(
+        (item) => item.id !== itemId
+      )
 
       const newPages = prev.map((p) => (p.page_number === currentPage ? updated : p))
       
-      // Save immediately with the updated content
-      const pageData = {
-        page_number: currentPage,
-        left_layout: leftLayout,
-        right_layout: rightLayout,
-        left_content: updated.left_content,
-        right_content: updated.right_content,
-      }
-      
       // Save immediately without delay
       savePage({
-        left_content: updated.left_content,
-        right_content: updated.right_content,
+        content: updated.left_content,
       }).catch((error) => {
         console.error("Failed to save after removing item:", error)
       })
@@ -645,10 +606,6 @@ export default function BookDesigner({
               onPersonFilterChange={setSelectedPersonFilter}
               onPhotosUploaded={handlePhotosUploaded}
               onBookUpdate={handleBookUpdate}
-              leftLayout={leftLayout}
-              rightLayout={rightLayout}
-              onLeftLayoutChange={setLeftLayout}
-              onRightLayoutChange={setRightLayout}
             />
           </ResizableSidebar>
 
@@ -657,17 +614,79 @@ export default function BookDesigner({
             <BookCanvas
               book={book}
               currentPage={currentPageData}
-              leftLayout={leftLayout}
-              rightLayout={rightLayout}
+              layout={layout}
               photos={allPhotos}
               quotes={allQuotes}
               persons={initialPersons}
               totalPages={Math.max(pages.length, currentPage, 1)}
               pages={pages}
-              onLeftLayoutChange={setLeftLayout}
-              onRightLayoutChange={setRightLayout}
+              onLayoutChange={setLayout}
               onRemoveItem={handleRemoveItem}
               onPageSelect={setCurrentPage}
+              onPageReorder={async (reorderedPages: BookPage[]) => {
+                // Update page numbers in database
+                // Use temporary high numbers first to avoid conflicts, then update to final numbers
+                try {
+                  const tempOffset = 10000
+                  
+                  // Step 1: Update all pages to temporary numbers
+                  for (const page of reorderedPages) {
+                    await fetch(`/api/books/${book.id}/pages`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        page_id: page.id,
+                        page_number: tempOffset + page.page_number,
+                      }),
+                    })
+                  }
+
+                  // Step 2: Update all pages to final numbers
+                  for (let i = 0; i < reorderedPages.length; i++) {
+                    await fetch(`/api/books/${book.id}/pages`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        page_id: reorderedPages[i].id,
+                        page_number: i + 1,
+                      }),
+                    })
+                  }
+
+                  // Reload pages
+                  const { data: pagesData } = await supabase
+                    .from("book_pages")
+                    .select("*")
+                    .eq("book_id", book.id)
+                    .order("page_number", { ascending: true })
+
+                  if (pagesData) {
+                    const updatedPages = pagesData.map((page) => ({
+                      ...page,
+                      left_content: (page.left_content as any) || [],
+                      right_content: [],
+                    })) as BookPage[]
+                    setPages(updatedPages)
+                    // Update current page if it changed
+                    const updatedCurrentPage = updatedPages.find((p) => p.id === currentPageData?.id)
+                    if (updatedCurrentPage) {
+                      setCurrentPage(updatedCurrentPage.page_number)
+                    }
+                  }
+
+                  toast({
+                    title: "Pages reordered",
+                    description: "Page order has been saved",
+                  })
+                } catch (error) {
+                  console.error("Failed to reorder pages:", error)
+                  toast({
+                    title: "Error",
+                    description: "Failed to save page order",
+                    variant: "destructive",
+                  })
+                }
+              }}
               onAddPage={async () => {
                 const newPageNumber = Math.max(pages.length, currentPage, 1) + 1
                 // Create the new page immediately
@@ -677,7 +696,7 @@ export default function BookDesigner({
                     left_layout: null,
                     right_layout: null,
                     left_content: [],
-                    right_content: [],
+                    right_content: [], // Always empty for single page
                   }
                   
                   const res = await fetch(`/api/books/${book.id}/pages`, {
@@ -693,7 +712,7 @@ export default function BookDesigner({
                       {
                         ...newPage,
                         left_content: (newPage.left_content as any) || [],
-                        right_content: (newPage.right_content as any) || [],
+                        right_content: [], // Always empty for single page
                       },
                     ])
                     setCurrentPage(newPageNumber)

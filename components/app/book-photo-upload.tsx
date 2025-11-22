@@ -38,9 +38,11 @@ export default function BookPhotoUpload({
   const dropZoneRef = useRef<HTMLDivElement>(null)
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+    if (e.target.files && e.target.files.length > 0) {
       const selectedFiles = Array.from(e.target.files)
       setFiles((prev) => [...prev, ...selectedFiles])
+      // Reset input to allow selecting the same files again
+      e.target.value = ""
     }
   }
 

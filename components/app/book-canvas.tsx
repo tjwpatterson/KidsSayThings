@@ -7,16 +7,14 @@ import type { Book, BookPage, Entry, Person, BookPhoto, PageLayout } from "@/lib
 interface BookCanvasProps {
   book: Book
   currentPage: BookPage | undefined
-  leftLayout: PageLayout | null
-  rightLayout: PageLayout | null
+  layout: PageLayout | null
   photos: BookPhoto[]
   quotes: Entry[]
   persons: Person[]
   totalPages: number
   pages: BookPage[]
-  onLeftLayoutChange: (layout: PageLayout | null) => void
-  onRightLayoutChange: (layout: PageLayout | null) => void
-  onRemoveItem: (side: "left" | "right", itemId: string) => void
+  onLayoutChange: (layout: PageLayout | null) => void
+  onRemoveItem: (itemId: string) => void
   onPageSelect: (pageNumber: number) => void
   onAddPage: () => void
 }
@@ -24,84 +22,101 @@ interface BookCanvasProps {
 export default function BookCanvas({
   book,
   currentPage,
-  leftLayout,
-  rightLayout,
+  layout,
   photos,
   quotes,
   persons,
   totalPages,
   pages,
-  onLeftLayoutChange,
-  onRightLayoutChange,
+  onLayoutChange,
   onRemoveItem,
   onPageSelect,
   onAddPage,
+  onPageReorder,
 }: BookCanvasProps) {
+  const [showOrganizer, setShowOrganizer] = useState(false)
+  
   // Determine page type labels
   const currentPageNumber = currentPage?.page_number || 1
   const getPageLabel = (pageNumber: number) => {
     if (pageNumber === 1) {
-      return { left: "Front Cover", right: "Title Page" }
+      return "Front Cover"
     }
     // Last page is back cover
     if (pageNumber === totalPages) {
-      return { left: null, right: "Back Cover" }
+      return "Back Cover"
     }
-    // Page 2 could be title/intro page continuation
+    // Page 2 could be title/intro page
     if (pageNumber === 2) {
-      return { left: null, right: "Intro Page" }
+      return "Title Page"
     }
-    return { left: null, right: null }
+    return null
   }
 
   const pageLabel = getPageLabel(currentPageNumber)
 
   return (
-    <div className="flex-1 bg-muted/10 flex flex-col">
-      <div className="flex-1 flex flex-col items-center justify-center p-4 min-h-full">
-        <div className="w-full max-w-5xl">
-          {/* Page Carousel - Above Page Preview */}
-          <div className="mb-4">
-            <BookPageThumbnails
-              pages={pages}
-              currentPage={currentPageNumber}
-              onPageSelect={onPageSelect}
-              onAddPage={onAddPage}
-            />
-          </div>
-
-          {/* Page Type Labels - Compact */}
-          {(pageLabel.left || pageLabel.right) && (
-            <div className="flex gap-2 mb-4 justify-center">
-              {pageLabel.left && (
-                <div className="px-3 py-1 bg-primary text-primary-foreground rounded text-xs font-semibold">
-                  {pageLabel.left}
-                </div>
-              )}
-              {pageLabel.right && (
-                <div className="px-3 py-1 bg-primary text-primary-foreground rounded text-xs font-semibold">
-                  {pageLabel.right}
-                </div>
-              )}
+    <>
+      <div className="flex-1 bg-muted/10 flex flex-col">
+        <div className="flex-1 flex flex-col items-center justify-center p-4 min-h-full">
+          <div className="w-full max-w-6xl">
+            {/* Page Carousel - Above Page Preview */}
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex-1">
+                <BookPageThumbnails
+                  pages={pages}
+                  currentPage={currentPageNumber}
+                  onPageSelect={onPageSelect}
+                  onAddPage={onAddPage}
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowOrganizer(true)}
+                className="ml-4 gap-2"
+              >
+                <Grid3x3 className="h-4 w-4" />
+                Organize Pages
+              </Button>
             </div>
-          )}
 
-          {/* Two-Page Spread Preview */}
-          <div className="flex justify-center">
-            <BookPagePreview
-              book={book}
-              page={currentPage}
-              leftLayout={leftLayout}
-              rightLayout={rightLayout}
-              photos={photos}
-              quotes={quotes}
-              persons={persons}
-              onRemoveItem={onRemoveItem}
-            />
+            {/* Page Type Label */}
+            {pageLabel && (
+              <div className="mb-4 justify-center flex">
+                <div className="px-3 py-1 bg-primary text-primary-foreground rounded text-xs font-semibold">
+                  {pageLabel}
+                </div>
+              </div>
+            )}
+
+            {/* Single Page Preview */}
+            <div className="flex justify-center">
+              <BookPagePreview
+                book={book}
+                page={currentPage}
+                layout={layout}
+                photos={photos}
+                quotes={quotes}
+                persons={persons}
+                onLayoutChange={onLayoutChange}
+                onRemoveItem={onRemoveItem}
+              />
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Page Organizer Modal */}
+      {showOrganizer && (
+        <BookPageOrganizer
+          pages={pages}
+          currentPage={currentPageNumber}
+          onPageSelect={onPageSelect}
+          onPageReorder={onPageReorder}
+          onClose={() => setShowOrganizer(false)}
+        />
+      )}
+    </>
   )
 }
-

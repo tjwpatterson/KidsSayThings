@@ -45,9 +45,9 @@ export default function BookDesigner({
   // State management
   const [book, setBook] = useState<Book>(initialBook)
   const [currentPage, setCurrentPage] = useState(1)
-  const [pages, setPages] = useState<BookPage[]>(initialPages)
-  const [allPhotos, setAllPhotos] = useState<BookPhoto[]>(initialPhotos)
-  const [allQuotes, setAllQuotes] = useState<Entry[]>(initialEntries)
+  const [pages, setPages] = useState<BookPage[]>(initialPages || [])
+  const [allPhotos, setAllPhotos] = useState<BookPhoto[]>(initialPhotos || [])
+  const [allQuotes, setAllQuotes] = useState<Entry[]>(initialEntries || [])
   const [layout, setLayout] = useState<PageLayout | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -126,8 +126,8 @@ export default function BookDesigner({
 
   // Get available (unused) photos and quotes
   const { usedPhotoIds, usedQuoteIds } = getUsedItemIds()
-  const photos = allPhotos.filter((p) => !usedPhotoIds.has(p.id))
-  const quotes = allQuotes.filter((q) => !usedQuoteIds.has(q.id))
+  const photos = (allPhotos || []).filter((p) => !usedPhotoIds.has(p.id))
+  const quotes = (allQuotes || []).filter((q) => !usedQuoteIds.has(q.id))
 
   // Get current page data
   const currentPageData = pages.find((p) => p.page_number === currentPage)
@@ -429,7 +429,7 @@ export default function BookDesigner({
 
         if (targetLayout === "A") {
           // Layout A: Full page - replace with single item
-          updated.left_content = [contentItem]
+            updated.left_content = [contentItem]
           updatedContent = [contentItem]
         } else if (targetLayout === "B") {
           // Layout B: Photo 2/3 + Quote 1/3
@@ -440,7 +440,7 @@ export default function BookDesigner({
             const existingPhotoIndex = newContent.findIndex((c) => c.type === "photo")
             if (existingPhotoIndex >= 0) {
               newContent[existingPhotoIndex] = contentItem
-            } else {
+          } else {
               newContent.unshift(contentItem)
             }
           } else if (isQuote && isBottom) {
@@ -456,9 +456,9 @@ export default function BookDesigner({
             newContent.push(contentItem)
           }
           
-          updated.left_content = newContent
+            updated.left_content = newContent
           updatedContent = newContent
-        } else {
+          } else {
           // No layout - just add to content
           updated.left_content = [...content, contentItem]
           updatedContent = [...content, contentItem]
@@ -516,16 +516,16 @@ export default function BookDesigner({
       console.error("Error reloading photos:", error)
       // Fallback: if newPhotos provided, use them; otherwise keep current
       if (newPhotos.length > 0) {
-        setAllPhotos((prev) => [...newPhotos, ...prev])
+    setAllPhotos((prev) => [...newPhotos, ...prev])
       }
     }
     // Only show toast if new photos were actually uploaded
     if (newPhotos.length > 0) {
-      toast({
-        title: "Photos uploaded",
-        description: `${newPhotos.length} photo(s) added`,
-      })
-    }
+    toast({
+      title: "Photos uploaded",
+      description: `${newPhotos.length} photo(s) added`,
+    })
+  }
   }
 
   // Remove item from page
@@ -541,9 +541,9 @@ export default function BookDesigner({
       if (!existing) return prev
 
       const updated = { ...existing }
-      updated.left_content = (updated.left_content || []).filter(
-        (item) => item.id !== itemId
-      )
+        updated.left_content = (updated.left_content || []).filter(
+          (item) => item.id !== itemId
+        )
 
       const newPages = prev.map((p) => (p.page_number === currentPage ? updated : p))
       
@@ -650,16 +650,16 @@ export default function BookDesigner({
           {/* Center Canvas */}
           <div className="flex-1 overflow-auto relative" style={{ zoom: `${zoom}%` }}>
             <BookCanvas
-              book={book}
+                book={book}
               currentPage={currentPageData}
               layout={layout}
-              photos={allPhotos}
-              quotes={allQuotes}
-              persons={initialPersons}
+                photos={allPhotos}
+                quotes={allQuotes}
+                persons={initialPersons}
               totalPages={Math.max(pages.length, currentPage, 1)}
               pages={pages}
               onLayoutChange={handleLayoutChange}
-              onRemoveItem={handleRemoveItem}
+                onRemoveItem={handleRemoveItem}
               onPageSelect={setCurrentPage}
               onPageReorder={async (reorderedPages: BookPage[]) => {
                 // Update page numbers in database

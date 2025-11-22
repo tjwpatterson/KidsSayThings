@@ -114,9 +114,9 @@ export default async function BookDesignPage({
     <div className="h-screen flex flex-col">
       <BookDesigner
         book={book as Book}
-        initialEntries={entries as Entry[]}
-        initialPersons={persons as Person[]}
-        initialPages={pages}
+        initialEntries={(entries as Entry[]) || []}
+        initialPersons={(persons as Person[]) || []}
+        initialPages={pages || []}
         initialPhotos={photosWithSignedUrls || []}
       />
     </div>

@@ -25,6 +25,11 @@ export default function BookDesignerWrapper(props: BookDesignerWrapperProps) {
   }, [])
 
   // Don't render anything until mounted AND component is loaded
+  // Return null on server to prevent any hydration mismatch
+  if (typeof window === "undefined") {
+    return null
+  }
+
   if (!mounted || !BookDesignerClient) {
     return (
       <div className="h-screen flex items-center justify-center" suppressHydrationWarning>

@@ -1,15 +1,7 @@
 import type { Metadata } from "next"
 import { Inter, Playfair_Display } from "next/font/google"
 import "./globals.css"
-import dynamic from "next/dynamic"
-
-// Dynamically import Toaster with SSR disabled to prevent hydration errors
-const Toaster = dynamic(
-  () => import("@/components/ui/toaster").then((mod) => ({ default: mod.Toaster })),
-  {
-    ssr: false,
-  }
-)
+import ToasterWrapper from "@/components/ui/toaster-wrapper"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -35,7 +27,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
         {children}
-        <Toaster />
+        <ToasterWrapper />
       </body>
     </html>
   )

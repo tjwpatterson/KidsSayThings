@@ -52,9 +52,11 @@ export default function AppLayout({
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
+    <div className="flex h-screen flex-col overflow-hidden" suppressHydrationWarning>
       <AppNav />
-      <main className="flex-1 overflow-hidden">{children}</main>
+      <main className="flex-1 overflow-hidden" suppressHydrationWarning>
+        {children}
+      </main>
     </div>
   )
 }

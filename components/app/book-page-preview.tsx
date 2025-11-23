@@ -1,7 +1,5 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import dynamic from "next/dynamic"
 import { useDroppable } from "@dnd-kit/core"
 import type {
   Book,
@@ -19,21 +17,13 @@ import {
   getPartialPageQuoteStyle,
   attributionStyle,
 } from "@/lib/typography"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import BookLayoutSelectorVisual from "./book-layout-selector-visual"
-
-// Dynamically import Popover to avoid SSR hydration issues
-const Popover = dynamic(
-  () => import("@/components/ui/popover").then((mod) => mod.Popover),
-  { ssr: false }
-)
-const PopoverTrigger = dynamic(
-  () => import("@/components/ui/popover").then((mod) => mod.PopoverTrigger),
-  { ssr: false }
-)
-const PopoverContent = dynamic(
-  () => import("@/components/ui/popover").then((mod) => mod.PopoverContent),
-  { ssr: false }
-)
+import ClientOnly from "./client-only"
 
 interface BookPagePreviewProps {
   book: Book
@@ -85,77 +75,88 @@ export default function BookPagePreview({
         style={{ width: `${pageWidth}px`, height: `${pageHeight}px` }}
       >
         {/* Layout Selector Button - appears when no layout or as badge when layout selected */}
-        <div className="absolute top-4 right-4 z-10">
-          {layout ? (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2 bg-background/95 backdrop-blur-sm"
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                  <span className="text-xs">
-                    {layout === "A" ? "Full Page" : "Photo + Quote"}
-                  </span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80" align="end">
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-semibold mb-3">Page Layout</h4>
-                    <BookLayoutSelectorVisual
-                      selected={layout}
-                      onSelect={(newLayout) => {
-                        try {
-                          if (onLayoutChange) {
-                            onLayoutChange(newLayout)
+        <ClientOnly
+          fallback={
+            <div className="absolute top-4 right-4 z-10">
+              <Button variant="default" size="sm" className="gap-2" disabled>
+                <LayoutGrid className="h-4 w-4" />
+                Choose Page Layout
+              </Button>
+            </div>
+          }
+        >
+          <div className="absolute top-4 right-4 z-10">
+            {layout ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 bg-background/95 backdrop-blur-sm"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                    <span className="text-xs">
+                      {layout === "A" ? "Full Page" : "Photo + Quote"}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80" align="end">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-semibold mb-3">Page Layout</h4>
+                      <BookLayoutSelectorVisual
+                        selected={layout}
+                        onSelect={(newLayout) => {
+                          try {
+                            if (onLayoutChange) {
+                              onLayoutChange(newLayout)
+                            }
+                          } catch (error) {
+                            console.error("Error changing layout:", error)
                           }
-                        } catch (error) {
-                          console.error("Error changing layout:", error)
-                        }
-                      }}
-                      type="photo"
-                    />
+                        }}
+                        type="photo"
+                      />
+                    </div>
                   </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-          ) : (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="gap-2"
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                  Choose Page Layout
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80" align="end">
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-semibold mb-3">Choose Page Layout</h4>
-                    <BookLayoutSelectorVisual
-                      selected={null}
-                      onSelect={(newLayout) => {
-                        try {
-                          if (onLayoutChange) {
-                            onLayoutChange(newLayout)
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                    Choose Page Layout
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80" align="end">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-semibold mb-3">Choose Page Layout</h4>
+                      <BookLayoutSelectorVisual
+                        selected={null}
+                        onSelect={(newLayout) => {
+                          try {
+                            if (onLayoutChange) {
+                              onLayoutChange(newLayout)
+                            }
+                          } catch (error) {
+                            console.error("Error changing layout:", error)
                           }
-                        } catch (error) {
-                          console.error("Error changing layout:", error)
-                        }
-                      }}
-                      type="photo"
-                    />
+                        }}
+                        type="photo"
+                      />
+                    </div>
                   </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-          )}
-        </div>
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
+        </ClientOnly>
 
         {/* Page Content */}
         <PageSide

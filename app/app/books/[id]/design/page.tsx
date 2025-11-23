@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
 import { getCurrentHousehold } from "@/lib/household"
-import BookDesigner from "@/components/app/book-designer"
+import BookDesignerClient from "@/components/app/book-designer-client"
 import ErrorBoundary from "@/components/app/error-boundary"
 import type { Book, Entry, Person, BookPhoto, BookPage } from "@/lib/types"
 
@@ -114,7 +114,7 @@ export default async function BookDesignPage({
   return (
     <ErrorBoundary>
       <div className="h-screen flex flex-col">
-        <BookDesigner
+              <BookDesignerClient
           book={book as Book}
           initialEntries={(entries as Entry[]) || []}
           initialPersons={(persons as Person[]) || []}

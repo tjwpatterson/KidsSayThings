@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -92,8 +92,14 @@ export default function BookSidebarContent({
   onPhotosUploaded,
   onBookUpdate,
 }: BookSidebarContentProps) {
+  const [mounted, setMounted] = useState(false)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [dedication, setDedication] = useState(book?.dedication || "")
+
+  // Only render Select/Popover on client to avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const filteredQuotes = useMemo(() => {
     if (!quotes || quotes.length === 0) return []
@@ -169,27 +175,33 @@ export default function BookSidebarContent({
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-sm">Quotes</h3>
           </div>
-          <Select value={selectedPersonFilter || "all"} onValueChange={(value) => {
-            try {
-              if (onPersonFilterChange) {
-                onPersonFilterChange(value)
+          {mounted ? (
+            <Select value={selectedPersonFilter || "all"} onValueChange={(value) => {
+              try {
+                if (onPersonFilterChange) {
+                  onPersonFilterChange(value)
+                }
+              } catch (error) {
+                console.error("Error changing person filter:", error)
               }
-            } catch (error) {
-              console.error("Error changing person filter:", error)
-            }
-          }}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Filter by person" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All People</SelectItem>
-              {persons && persons.length > 0 ? persons.map((person) => (
-                <SelectItem key={person.id} value={person.id}>
-                  {person.display_name}
-                </SelectItem>
-              )) : null}
-            </SelectContent>
-          </Select>
+            }}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Filter by person" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All People</SelectItem>
+                {persons && persons.length > 0 ? persons.map((person) => (
+                  <SelectItem key={person.id} value={person.id}>
+                    {person.display_name}
+                  </SelectItem>
+                )) : null}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm flex items-center">
+              <span className="text-muted-foreground">Filter by person</span>
+            </div>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto">
           <BookQuoteCarousel quotes={filteredQuotes} persons={persons || []} />

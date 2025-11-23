@@ -576,21 +576,9 @@ export default function BookDesignerClient({
     }
   }, [book.id, toast])
 
-  // Return null on server to prevent any hydration mismatch
-  if (typeof window === "undefined") {
+  // Return null on server AND until client is ready to prevent any hydration mismatch
+  if (typeof window === "undefined" || !clientReady) {
     return null
-  }
-
-  // Additional safety check - don't render until we're sure we're on client
-  if (!clientReady) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    )
   }
 
   return (

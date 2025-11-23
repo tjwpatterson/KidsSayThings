@@ -5,6 +5,7 @@ import { Component, ReactNode } from "react"
 interface Props {
   children: ReactNode
   fallback?: ReactNode
+  renderFallback?: (error: Error | null, reset: () => void) => ReactNode
 }
 
 interface State {
@@ -28,6 +29,15 @@ class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      const reset = () => {
+        this.setState({ hasError: false, error: null })
+        window.location.reload()
+      }
+
+      if (this.props.renderFallback) {
+        return this.props.renderFallback(this.state.error, reset)
+      }
+
       return (
         this.props.fallback || (
           <div className="flex items-center justify-center h-64 p-4">
@@ -37,10 +47,7 @@ class ErrorBoundary extends Component<Props, State> {
                 {this.state.error?.message || "An unexpected error occurred"}
               </p>
               <button
-                onClick={() => {
-                  this.setState({ hasError: false, error: null })
-                  window.location.reload()
-                }}
+                onClick={reset}
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
               >
                 Reload Page

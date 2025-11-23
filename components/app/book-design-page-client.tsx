@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import type { Book, Entry, Person, BookPhoto, BookPage } from "@/lib/types"
+import ErrorBoundary from "./error-boundary"
 
 export default function BookDesignPageClient() {
   const params = useParams()
@@ -185,13 +186,55 @@ export default function BookDesignPageClient() {
 
   return (
     <div className="h-screen flex flex-col" suppressHydrationWarning>
-      <BookDesignerWrapper
-        book={data.book}
-        initialEntries={data.entries}
-        initialPersons={data.persons}
-        initialPages={data.pages}
-        initialPhotos={data.photos}
-      />
+      <ErrorBoundary
+        renderFallback={(error) => (
+          <BookDesignerError error={error} bookId={data.book?.id} />
+        )}
+      >
+        <BookDesignerWrapper
+          book={data.book}
+          initialEntries={data.entries}
+          initialPersons={data.persons}
+          initialPages={data.pages}
+          initialPhotos={data.photos}
+        />
+      </ErrorBoundary>
+    </div>
+  )
+}
+
+function BookDesignerError({
+  error,
+  bookId,
+}: {
+  error: Error | null
+  bookId?: string
+}) {
+  return (
+    <div className="h-full flex flex-col items-center justify-center px-6 text-center space-y-4">
+      <div>
+        <h2 className="text-2xl font-semibold mb-2">Designer crashed</h2>
+        <p className="text-muted-foreground">
+          Please copy the error info below and share it so we can pinpoint the issue without needing a full rebuild.
+        </p>
+      </div>
+      <div className="w-full max-w-2xl rounded-lg border bg-muted/30 text-left text-sm p-4 overflow-auto">
+        <p className="font-semibold mb-2">Message:</p>
+        <pre className="whitespace-pre-wrap break-words text-xs bg-background/70 p-3 rounded border mb-3">
+          {error?.message || "Unknown error"}
+        </pre>
+        {error?.stack && (
+          <>
+            <p className="font-semibold mb-2">Stack trace:</p>
+            <pre className="whitespace-pre-wrap break-words text-xs bg-background/70 p-3 rounded border">
+              {error.stack}
+            </pre>
+          </>
+        )}
+        {bookId && (
+          <p className="text-xs text-muted-foreground mt-3">Book ID: {bookId}</p>
+        )}
+      </div>
     </div>
   )
 }

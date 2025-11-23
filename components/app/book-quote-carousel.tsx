@@ -2,15 +2,19 @@
 
 import { useDraggable } from "@dnd-kit/core"
 import { ChevronUp, ChevronDown } from "lucide-react"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import type { Entry, Person } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
+
+type QuoteWithDate = Entry & { formattedDate: string }
 
 interface BookQuoteCarouselProps {
   quotes?: Entry[]
   persons?: Person[]
 }
+
+const INVALID_DATE_TEXT = "Date unavailable"
 
 export default function BookQuoteCarousel({
   quotes = [],
@@ -47,6 +51,21 @@ export default function BookQuoteCarousel({
     if (!personId || !persons || persons.length === 0) return null
     return persons.find((p) => p.id === personId)?.display_name || null
   }
+
+  const quotesWithDates = useMemo<QuoteWithDate[]>(() => {
+    return quotes.map((quote) => {
+      let formattedDate = INVALID_DATE_TEXT
+      if (quote.entry_date) {
+        try {
+          const parsed = new Date(quote.entry_date)
+          formattedDate = format(parsed, "MMM d, yyyy")
+        } catch (error) {
+          console.warn("Invalid entry_date for quote", quote.id, quote.entry_date, error)
+        }
+      }
+      return { ...quote, formattedDate }
+    })
+  }, [quotes])
 
   // Don't render until mounted to prevent hydration issues
   if (!mounted) {
@@ -85,7 +104,7 @@ export default function BookQuoteCarousel({
                   <p className="text-xs text-muted-foreground">Add quotes from the Entries page</p>
                 </div>
               ) : (
-          quotes.map((quote) => (
+          quotesWithDates.map((quote) => (
             <DraggableQuote
               key={quote.id}
               quote={quote}
@@ -111,7 +130,7 @@ function DraggableQuote({
   quote,
   personName,
 }: {
-  quote: Entry
+  quote: QuoteWithDate
   personName: string | null
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
@@ -143,7 +162,7 @@ function DraggableQuote({
         <p className="text-sm mb-2 line-clamp-3">{quote.text}</p>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           {personName && <span>{personName}</span>}
-          <span>{format(new Date(quote.entry_date), "MMM d, yyyy")}</span>
+          <span>{quote.formattedDate || INVALID_DATE_TEXT}</span>
         </div>
       </div>
     </div>

@@ -46,6 +46,13 @@ export default function BookPagePreview({
   onLayoutChange,
   onRemoveItem,
 }: BookPagePreviewProps) {
+  const [mounted, setMounted] = useState(false)
+
+  // Only render Popover on client to avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   // Calculate page dimensions (6"w x 9"h scaled to realistic size)
   const bookAspectRatio = 6 / 9 // width/height = 0.667
   const maxDisplayWidth = 400 // Larger for single page view

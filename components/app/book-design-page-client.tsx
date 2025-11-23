@@ -167,6 +167,11 @@ export default function BookDesignPageClient() {
   }, [mounted, params?.id, router])
 
   // Don't render anything until mounted AND component is loaded AND data is ready
+  // Return null on server to prevent any hydration mismatch
+  if (typeof window === "undefined") {
+    return null
+  }
+
   if (!mounted || loading || !data || !data.book || !BookDesignerWrapper) {
     return (
       <div className="h-screen flex items-center justify-center" suppressHydrationWarning>

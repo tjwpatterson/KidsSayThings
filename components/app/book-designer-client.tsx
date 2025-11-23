@@ -566,6 +566,11 @@ export default function BookDesignerClient({
     }
   }, [book.id, toast])
 
+  // Return null on server to prevent any hydration mismatch
+  if (typeof window === "undefined") {
+    return null
+  }
+
   return (
     <DndContext
       sensors={sensors}
@@ -573,7 +578,7 @@ export default function BookDesignerClient({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full" suppressHydrationWarning>
         {/* Top Toolbar */}
         <BookToolbar
           book={book}

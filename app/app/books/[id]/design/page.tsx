@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense } from "react"
+import { useEffect, useState } from "react"
 import dynamic from "next/dynamic"
 
 // Force client-side only rendering - no SSR at all
@@ -12,18 +12,16 @@ const BookDesignPageClient = dynamic(
 )
 
 export default function BookDesignPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading...</p>
-          </div>
-        </div>
-      }
-    >
-      <BookDesignPageClient />
-    </Suspense>
-  )
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Return absolutely nothing until mounted to prevent any server rendering
+  if (!mounted) {
+    return null
+  }
+
+  return <BookDesignPageClient />
 }

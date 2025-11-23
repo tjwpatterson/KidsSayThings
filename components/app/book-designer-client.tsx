@@ -67,6 +67,7 @@ export default function BookDesignerClient({
   const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab>("photos")
   const [selectedPersonFilter, setSelectedPersonFilter] = useState<string>("all")
   const [zoom, setZoom] = useState(100)
+  const [clientReady, setClientReady] = useState(false)
 
   // Configure drag sensors for better drag detection
   const sensors = useSensors(
@@ -574,8 +575,6 @@ export default function BookDesignerClient({
   }
 
   // Additional safety check - don't render until we're sure we're on client
-  const [clientReady, setClientReady] = useState(false)
-  
   useEffect(() => {
     // Small delay to ensure we're fully on client
     setClientReady(true)

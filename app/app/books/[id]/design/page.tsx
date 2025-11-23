@@ -1,9 +1,25 @@
 import { redirect } from "next/navigation"
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
 import { getCurrentHousehold } from "@/lib/household"
-import BookDesignerClient from "@/components/app/book-designer-client"
+import dynamic from "next/dynamic"
 import ErrorBoundary from "@/components/app/error-boundary"
 import type { Book, Entry, Person, BookPhoto, BookPage } from "@/lib/types"
+
+// Dynamically import BookDesignerClient with SSR completely disabled
+const BookDesignerClient = dynamic(
+  () => import("@/components/app/book-designer-client"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading book designer...</p>
+        </div>
+      </div>
+    ),
+  }
+)
 
 export default async function BookDesignPage({
   params,

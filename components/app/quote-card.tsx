@@ -16,30 +16,33 @@ export default function QuoteCard({ entry, person, index = 0 }: QuoteCardProps) 
   const personColor = person ? getPersonColor(person.id) : undefined
 
   return (
-    <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-l-4"
+    <Card 
+      className="h-full hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4 hover:scale-[1.01]"
       style={{
         borderLeftColor: personColor || "transparent",
+        borderLeftWidth: personColor ? "4px" : "0",
       }}
     >
-      <CardContent className="pt-6">
-        <div className="space-y-3">
-          <p className="text-base leading-relaxed">{entry.text}</p>
+      <CardContent className="pt-6 pb-5">
+        <div className="space-y-4">
+          <p className="text-base leading-relaxed font-medium text-foreground">{entry.text}</p>
 
-          <div className="flex flex-wrap items-center gap-2 text-sm">
+          <div className="flex flex-wrap items-center gap-2 text-sm pt-2 border-t border-border/50">
             {person && (
               <Badge
                 variant="secondary"
-                className="font-normal"
+                className="font-medium px-2.5 py-1"
                 style={{
-                  backgroundColor: `${personColor}20`,
+                  backgroundColor: `${personColor}15`,
                   color: personColor,
-                  borderColor: `${personColor}40`,
+                  borderColor: `${personColor}30`,
+                  borderWidth: "1px",
                 }}
               >
                 {person.display_name}
               </Badge>
             )}
-            <span className="ml-auto text-xs text-muted-foreground">
+            <span className="ml-auto text-xs text-muted-foreground font-medium">
               {format(new Date(entry.entry_date), "MMM d, yyyy")}
             </span>
           </div>

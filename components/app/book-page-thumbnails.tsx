@@ -82,7 +82,7 @@ export default function BookPageThumbnails({
   }
 
   return (
-    <div className="bg-background border rounded-lg flex items-center h-24 shadow-sm">
+    <div className="bg-background border rounded-lg flex items-center h-28 shadow-sm backdrop-blur-sm">
       {/* Left Arrow */}
       <Button
         variant="ghost"
@@ -110,36 +110,37 @@ export default function BookPageThumbnails({
                 ref={isActive ? currentPageRef : null}
                 onClick={() => onPageSelect(pageNum)}
                 className={cn(
-                  "w-20 h-24 flex flex-col items-center justify-center rounded-lg border-2 transition-all shrink-0",
+                  "w-24 h-28 flex flex-col items-center justify-center rounded-lg border-2 transition-all shrink-0 cursor-pointer",
                   isActive
-                    ? "border-primary bg-primary/10 shadow-md scale-105"
-                    : "border-border bg-muted/50 hover:border-primary/50 hover:bg-muted hover:scale-102"
+                    ? "border-primary bg-primary/10 shadow-lg scale-105 ring-2 ring-primary/20"
+                    : "border-border bg-muted/50 hover:border-primary/50 hover:bg-muted hover:scale-102 hover:shadow-md"
                 )}
               >
                 <span
                   className={cn(
-                    "text-xs font-medium mb-1.5",
-                    isActive ? "text-primary font-bold" : "text-muted-foreground"
+                    "text-xs font-semibold mb-2",
+                    isActive ? "text-primary" : "text-muted-foreground"
                   )}
                 >
                   {pageNum === 1 ? "Cover" : pageNum === maxPage ? "Back" : pageNum}
                 </span>
                 {page ? (
-                  <div className="w-14 h-18 bg-white rounded border border-border flex flex-col items-center justify-center text-[8px] text-muted-foreground shadow-sm">
-                    <div className="text-[7px] font-medium opacity-70 mb-1">
+                  <div className="w-16 h-20 bg-white rounded-md border border-border flex flex-col items-center justify-center text-[8px] text-muted-foreground shadow-sm overflow-hidden">
+                    <div className="text-[7px] font-semibold opacity-80 mb-1 text-center px-1">
                       {pageNum === 1 && "Front"}
                       {pageNum === 2 && "Title"}
                       {pageNum === maxPage && "Back"}
                     </div>
-                    <div className="text-[9px]">
-                      {page.left_content?.length || 0}/{page.right_content?.length || 0}
+                    <div className="text-[9px] font-medium">
+                      {page.left_content?.length || 0} item{page.left_content?.length !== 1 ? 's' : ''}
                     </div>
                   </div>
                 ) : (
-                  <div className="w-14 h-18 bg-muted rounded border border-dashed border-muted-foreground/30 flex flex-col items-center justify-center">
+                  <div className="w-16 h-20 bg-muted/50 rounded-md border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center">
                     <span className="text-[7px] text-muted-foreground font-medium">
                       {pageNum === 1 && "Cover"}
                       {pageNum === maxPage && "Back"}
+                      {pageNum !== 1 && pageNum !== maxPage && "Empty"}
                     </span>
                   </div>
                 )}
@@ -148,11 +149,11 @@ export default function BookPageThumbnails({
           })}
           <button
             onClick={onAddPage}
-            className="w-20 h-24 flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-primary/50 bg-primary/5 hover:border-primary hover:bg-primary/10 transition-all shrink-0 group"
+            className="w-24 h-28 flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-primary/50 bg-primary/5 hover:border-primary hover:bg-primary/10 transition-all shrink-0 group cursor-pointer"
             title="Add New Page"
           >
             <span className="text-3xl text-primary mb-1 group-hover:scale-110 transition-transform">+</span>
-            <span className="text-[10px] font-medium text-primary">Add Page</span>
+            <span className="text-[10px] font-semibold text-primary">Add Page</span>
           </button>
         </div>
       </div>

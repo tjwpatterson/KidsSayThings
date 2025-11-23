@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Undo2, Redo2, Cloud, Share2, Sparkles, ZoomIn, ZoomOut, Maximize2 } from "lucide-react"
+import { Undo2, Redo2, Cloud, Share2, Sparkles, ZoomIn, ZoomOut, Maximize2, CheckCircle2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import type { Book } from "@/lib/types"
 
@@ -66,13 +66,25 @@ export default function BookToolbar({
   }
 
   return (
-    <div className="border-b bg-background px-4 py-2 flex items-center justify-between gap-4">
+    <div className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm px-4 py-2.5 flex items-center justify-between gap-4 shadow-sm">
       {/* Left side - Undo/Redo */}
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
+      <div className="flex items-center gap-1">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-9 w-9 p-0 hover:bg-muted transition-colors" 
+          disabled
+          title="Undo (Coming soon)"
+        >
           <Undo2 className="h-4 w-4" />
         </Button>
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-9 w-9 p-0 hover:bg-muted transition-colors" 
+          disabled
+          title="Redo (Coming soon)"
+        >
           <Redo2 className="h-4 w-4" />
         </Button>
       </div>
@@ -91,14 +103,14 @@ export default function BookToolbar({
       <div className="flex items-center gap-2">
         {/* Zoom Controls */}
         {onZoomChange && (
-          <div className="flex items-center gap-1 border-r pr-2 mr-2">
+          <div className="flex items-center gap-0.5 border-r pr-3 mr-3">
             <Button
               onClick={handleZoomOut}
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="h-9 w-9 p-0 hover:bg-muted transition-colors"
               disabled={zoom <= 50}
-              title="Zoom Out"
+              title="Zoom Out (⌘-)"
             >
               <ZoomOut className="h-4 w-4" />
             </Button>
@@ -106,7 +118,7 @@ export default function BookToolbar({
               onClick={handleZoomReset}
               variant="ghost"
               size="sm"
-              className="h-8 px-2 text-xs"
+              className="h-9 px-3 text-xs font-medium hover:bg-muted transition-colors"
               title="Reset Zoom"
             >
               {zoom}%
@@ -115,9 +127,9 @@ export default function BookToolbar({
               onClick={handleZoomIn}
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="h-9 w-9 p-0 hover:bg-muted transition-colors"
               disabled={zoom >= 200}
-              title="Zoom In"
+              title="Zoom In (⌘+)"
             >
               <ZoomIn className="h-4 w-4" />
             </Button>
@@ -125,7 +137,7 @@ export default function BookToolbar({
               onClick={handleZoomFit}
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="h-9 w-9 p-0 hover:bg-muted transition-colors"
               title="Fit to Screen"
             >
               <Maximize2 className="h-4 w-4" />
@@ -134,26 +146,31 @@ export default function BookToolbar({
         )}
 
         {saving ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Cloud className="h-4 w-4 animate-pulse" />
+          <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
+            <Cloud className="h-4 w-4" />
             <span>Saving...</span>
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Cloud className="h-4 w-4" />
-            <span>Saved</span>
+          <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400 transition-colors">
+            <CheckCircle2 className="h-4 w-4" />
+            <span className="font-medium">Saved</span>
           </div>
         )}
         <Button
           onClick={onAutoGenerate}
           variant="outline"
           size="sm"
-          className="gap-2"
+          className="gap-2 hover:bg-muted transition-colors"
         >
           <Sparkles className="h-4 w-4" />
           Auto-Generate
         </Button>
-        <Button onClick={handleShare} variant="default" size="sm" className="gap-2">
+        <Button 
+          onClick={handleShare} 
+          variant="default" 
+          size="sm" 
+          className="gap-2 hover:bg-primary/90 transition-colors"
+        >
           <Share2 className="h-4 w-4" />
           Share
         </Button>

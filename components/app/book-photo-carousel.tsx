@@ -54,11 +54,17 @@ export default function BookPhotoCarousel({ photos = [], bookId, onPhotoDeleted 
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto p-4 space-y-3"
       >
-        {photos.length === 0 ? (
-          <div className="text-center text-sm text-muted-foreground py-8">
-            No photos available
-          </div>
-        ) : (
+              {photos.length === 0 ? (
+                <div className="text-center py-12 px-4">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+                    <svg className="w-8 h-8 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-medium text-foreground mb-1">No photos yet</p>
+                  <p className="text-xs text-muted-foreground">Upload photos to add them to your book</p>
+                </div>
+              ) : (
           photos.map((photo) => (
             <DraggablePhoto 
               key={photo.id} 

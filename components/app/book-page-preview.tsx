@@ -10,20 +10,14 @@ import type {
   PageLayout,
   PageContentItem,
 } from "@/lib/types"
-import { X, LayoutGrid } from "lucide-react"
+import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   getFullPageQuoteStyle,
   getPartialPageQuoteStyle,
   attributionStyle,
 } from "@/lib/typography"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import BookLayoutSelectorVisual from "./book-layout-selector-visual"
-import ClientOnly from "./client-only"
+import LayoutSelectorButton from "./layout-selector-button"
 
 interface BookPagePreviewProps {
   book: Book
@@ -75,88 +69,9 @@ export default function BookPagePreview({
         style={{ width: `${pageWidth}px`, height: `${pageHeight}px` }}
       >
         {/* Layout Selector Button - appears when no layout or as badge when layout selected */}
-        <ClientOnly
-          fallback={
-            <div className="absolute top-4 right-4 z-10">
-              <Button variant="default" size="sm" className="gap-2" disabled>
-                <LayoutGrid className="h-4 w-4" />
-                Choose Page Layout
-              </Button>
-            </div>
-          }
-        >
-          <div className="absolute top-4 right-4 z-10">
-            {layout ? (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 bg-background/95 backdrop-blur-sm"
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                    <span className="text-xs">
-                      {layout === "A" ? "Full Page" : "Photo + Quote"}
-                    </span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80" align="end">
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="text-sm font-semibold mb-3">Page Layout</h4>
-                      <BookLayoutSelectorVisual
-                        selected={layout}
-                        onSelect={(newLayout) => {
-                          try {
-                            if (onLayoutChange) {
-                              onLayoutChange(newLayout)
-                            }
-                          } catch (error) {
-                            console.error("Error changing layout:", error)
-                          }
-                        }}
-                        type="photo"
-                      />
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            ) : (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="gap-2"
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                    Choose Page Layout
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80" align="end">
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="text-sm font-semibold mb-3">Choose Page Layout</h4>
-                      <BookLayoutSelectorVisual
-                        selected={null}
-                        onSelect={(newLayout) => {
-                          try {
-                            if (onLayoutChange) {
-                              onLayoutChange(newLayout)
-                            }
-                          } catch (error) {
-                            console.error("Error changing layout:", error)
-                          }
-                        }}
-                        type="photo"
-                      />
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            )}
-          </div>
-        </ClientOnly>
+        <div className="absolute top-4 right-4 z-10">
+          <LayoutSelectorButton layout={layout} onLayoutChange={onLayoutChange} />
+        </div>
 
         {/* Page Content */}
         <PageSide
@@ -379,11 +294,17 @@ function DropZone({
   return (
     <div
       ref={nodeRef}
-      className={`w-full h-full flex items-center justify-center border-2 border-dashed rounded ${
-        isOver ? "border-primary bg-primary/10" : "border-muted"
+      className={`w-full h-full flex items-center justify-center border-2 border-dashed rounded transition-all duration-200 ${
+        isOver 
+          ? "border-primary bg-primary/10 scale-[1.02] shadow-lg shadow-primary/20" 
+          : "border-muted/50 hover:border-muted-foreground/30 hover:bg-muted/30"
       }`}
     >
-      <span className="text-sm text-muted-foreground">{message}</span>
+      <span className={`text-sm font-medium transition-colors ${
+        isOver ? "text-primary" : "text-muted-foreground"
+      }`}>
+        {isOver ? `✨ ${message}` : message}
+      </span>
     </div>
   )
 }

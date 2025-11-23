@@ -144,8 +144,8 @@ export default function QuickAddCard({
   const canSubmit = text.trim().length > 0 && selectedPersonId !== null && !loading
 
   return (
-    <div className="border-b pb-6 mb-6">
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="border-b border-border/50 pb-8 mb-8 bg-gradient-to-br from-background to-muted/20 rounded-lg p-6 shadow-sm">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {/* Person selector - ChatGPT style */}
         <div className="space-y-2">
           <Label htmlFor="person" className="text-sm font-medium">
@@ -204,11 +204,12 @@ export default function QuickAddCard({
         </div>
 
         {/* Submit button */}
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-2">
           <Button
             type="submit"
             disabled={!canSubmit}
-            className="gap-2"
+            className="gap-2 min-w-[120px] hover:bg-primary/90 transition-colors"
+            size="lg"
           >
             <Send className="h-4 w-4" />
             {loading ? "Saving..." : "Save Quote"}

@@ -771,24 +771,26 @@ export default function BookDesigner({
         </div>
       </div>
 
-      {/* Drag Overlay */}
-      <DragOverlay>
-        {activeId ? (
-          <div className="bg-white p-2 rounded shadow-lg border">
-            {allPhotos.find((p) => p.id === activeId) ? (
-              <img
-                src={allPhotos.find((p) => p.id === activeId)?.url || ""}
-                alt="Dragging"
-                className="w-32 h-32 object-cover rounded"
-              />
-            ) : (
-              <div className="w-32 h-32 bg-muted rounded flex items-center justify-center p-2 text-sm">
-                {allQuotes.find((q) => q.id === activeId)?.text || "Quote"}
-              </div>
-            )}
-          </div>
-        ) : null}
-      </DragOverlay>
+            {/* Drag Overlay */}
+            <DragOverlay>
+              {activeId ? (
+                <div className="bg-white p-3 rounded-lg shadow-2xl border-2 border-primary/50 transform rotate-2 scale-105">
+                  {allPhotos.find((p) => p.id === activeId) ? (
+                    <img
+                      src={allPhotos.find((p) => p.id === activeId)?.url || ""}
+                      alt="Dragging"
+                      className="w-40 h-40 object-cover rounded-md"
+                    />
+                  ) : (
+                    <div className="w-64 bg-gradient-to-br from-primary/10 to-primary/5 rounded-md flex items-center justify-center p-4 text-sm border-2 border-primary/20">
+                      <p className="text-center font-medium line-clamp-3">
+                        {allQuotes.find((q) => q.id === activeId)?.text || "Quote"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </DragOverlay>
     </DndContext>
   )
 }

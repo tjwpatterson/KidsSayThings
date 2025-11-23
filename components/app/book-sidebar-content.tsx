@@ -1,14 +1,7 @@
 "use client"
 
-import React, { useState, useMemo, useEffect } from "react"
+import React, { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Upload } from "lucide-react"
 import BookPhotoCarousel from "./book-photo-carousel"
 import BookQuoteCarousel from "./book-quote-carousel"
@@ -18,7 +11,7 @@ import ThemePreviewCard from "./theme-preview-card"
 import CoverStylePreview from "./cover-style-preview"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import ClientOnly from "./client-only"
+import PersonFilterSelect from "./person-filter-select"
 import type { Entry, Person, BookPhoto, BookThemeConfig, Book, PageLayout } from "@/lib/types"
 
 const themes: BookThemeConfig[] = [
@@ -170,35 +163,11 @@ export default function BookSidebarContent({
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-sm">Quotes</h3>
           </div>
-          <ClientOnly
-            fallback={
-              <div className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm flex items-center">
-                <span className="text-muted-foreground">Filter by person</span>
-              </div>
-            }
-          >
-            <Select value={selectedPersonFilter || "all"} onValueChange={(value) => {
-              try {
-                if (onPersonFilterChange) {
-                  onPersonFilterChange(value)
-                }
-              } catch (error) {
-                console.error("Error changing person filter:", error)
-              }
-            }}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Filter by person" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All People</SelectItem>
-                {persons && persons.length > 0 ? persons.map((person) => (
-                  <SelectItem key={person.id} value={person.id}>
-                    {person.display_name}
-                  </SelectItem>
-                )) : null}
-              </SelectContent>
-            </Select>
-          </ClientOnly>
+          <PersonFilterSelect
+            selectedPersonFilter={selectedPersonFilter || "all"}
+            persons={persons || []}
+            onPersonFilterChange={onPersonFilterChange}
+          />
         </div>
         <div className="flex-1 overflow-y-auto">
           <BookQuoteCarousel quotes={filteredQuotes} persons={persons || []} />

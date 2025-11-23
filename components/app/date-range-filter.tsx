@@ -20,6 +20,11 @@ interface DateRangeFilterProps {
 
 export default function DateRangeFilter({ value, onChange }: DateRangeFilterProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const setPreset = (preset: "all" | "week" | "month" | "year") => {
     const today = new Date()
@@ -131,56 +136,63 @@ export default function DateRangeFilter({ value, onChange }: DateRangeFilterProp
           This Year
         </Button>
       </div>
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Calendar className="h-4 w-4" />
-            {formatDateRange()}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80" align="end">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="start-date">Start Date</Label>
-              <Input
-                id="start-date"
-                type="date"
-                value={value.start ? format(value.start, "yyyy-MM-dd") : ""}
-                onChange={handleStartDateChange}
-              />
+      {mounted ? (
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Calendar className="h-4 w-4" />
+              {formatDateRange()}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80" align="end">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="start-date">Start Date</Label>
+                <Input
+                  id="start-date"
+                  type="date"
+                  value={value.start ? format(value.start, "yyyy-MM-dd") : ""}
+                  onChange={handleStartDateChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="end-date">End Date</Label>
+                <Input
+                  id="end-date"
+                  type="date"
+                  value={value.end ? format(value.end, "yyyy-MM-dd") : ""}
+                  onChange={handleEndDateChange}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    onChange({ start: null, end: null })
+                    setIsOpen(false)
+                  }}
+                >
+                  Clear
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Apply
+                </Button>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="end-date">End Date</Label>
-              <Input
-                id="end-date"
-                type="date"
-                value={value.end ? format(value.end, "yyyy-MM-dd") : ""}
-                onChange={handleEndDateChange}
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  onChange({ start: null, end: null })
-                  setIsOpen(false)
-                }}
-              >
-                Clear
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => setIsOpen(false)}
-              >
-                Apply
-              </Button>
-            </div>
-          </div>
-        </PopoverContent>
-      </Popover>
+          </PopoverContent>
+        </Popover>
+      ) : (
+        <Button variant="outline" size="sm" className="gap-2" disabled>
+          <Calendar className="h-4 w-4" />
+          {formatDateRange()}
+        </Button>
+      )}
     </div>
   )
 }

@@ -82,7 +82,7 @@ export default function BookPageThumbnails({
   }
 
   return (
-    <div className="bg-background border rounded-lg flex items-center h-28 shadow-sm backdrop-blur-sm">
+    <div className="bg-background/95 backdrop-blur-sm border-2 border-border/50 rounded-xl flex items-center h-32 shadow-lg">
       {/* Left Arrow */}
       <Button
         variant="ghost"
@@ -110,10 +110,10 @@ export default function BookPageThumbnails({
                 ref={isActive ? currentPageRef : null}
                 onClick={() => onPageSelect(pageNum)}
                 className={cn(
-                  "w-24 h-28 flex flex-col items-center justify-center rounded-lg border-2 transition-all shrink-0 cursor-pointer",
+                  "w-28 h-32 flex flex-col items-center justify-center rounded-xl border-2 transition-all shrink-0 cursor-pointer",
                   isActive
-                    ? "border-primary bg-primary/10 shadow-lg scale-105 ring-2 ring-primary/20"
-                    : "border-border bg-muted/50 hover:border-primary/50 hover:bg-muted hover:scale-102 hover:shadow-md"
+                    ? "border-primary bg-primary/15 shadow-xl scale-110 ring-4 ring-primary/30"
+                    : "border-border/50 bg-muted/30 hover:border-primary/60 hover:bg-muted/50 hover:scale-105 hover:shadow-lg"
                 )}
               >
                 <span
@@ -149,7 +149,7 @@ export default function BookPageThumbnails({
           })}
           <button
             onClick={onAddPage}
-            className="w-24 h-28 flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-primary/50 bg-primary/5 hover:border-primary hover:bg-primary/10 transition-all shrink-0 group cursor-pointer"
+            className="w-28 h-32 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-primary/60 bg-primary/10 hover:border-primary hover:bg-primary/20 transition-all shrink-0 group cursor-pointer hover:scale-105 hover:shadow-lg"
             title="Add New Page"
           >
             <span className="text-3xl text-primary mb-1 group-hover:scale-110 transition-transform">+</span>

@@ -43,7 +43,7 @@ export default function LayoutSelectorButton({
             <Button
               variant="outline"
               size="sm"
-              className="gap-2 bg-background/95 backdrop-blur-sm hover:bg-background transition-colors"
+              className="gap-2 bg-background/95 backdrop-blur-sm hover:bg-background transition-all shadow-md hover:shadow-lg border-2"
             >
               <LayoutGrid className="h-4 w-4" />
               <span className="text-xs font-medium">
@@ -76,7 +76,7 @@ export default function LayoutSelectorButton({
             <Button
               variant="default"
               size="sm"
-              className="gap-2 hover:bg-primary/90 transition-colors"
+              className="gap-2 hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl hover:scale-105"
             >
               <LayoutGrid className="h-4 w-4" />
               Choose Page Layout

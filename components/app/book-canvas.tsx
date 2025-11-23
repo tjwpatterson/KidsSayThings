@@ -62,9 +62,9 @@ export default function BookCanvas({
 
   return (
     <>
-      <div className="flex-1 bg-muted/10 flex flex-col">
-        <div className="flex-1 flex flex-col items-center justify-center p-4 min-h-full">
-          <div className="w-full max-w-6xl">
+      <div className="flex-1 bg-gradient-to-br from-background via-muted/20 to-background flex flex-col">
+        <div className="flex-1 flex flex-col items-center justify-center p-6 min-h-full">
+          <div className="w-full max-w-6xl space-y-6">
             {/* Page Carousel - Above Page Preview */}
             <div className="mb-4 flex items-center justify-between">
               <div className="flex-1">

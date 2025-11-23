@@ -110,7 +110,7 @@ export default function BookSidebarContent({
 
   if (activeTab === "photos") {
     return (
-      <div className="flex-1 border-r bg-muted/30 flex flex-col overflow-hidden min-w-[200px]">
+      <div className="flex-1 border-r border-border/50 bg-gradient-to-b from-background to-muted/20 flex flex-col overflow-hidden min-w-[200px]">
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-semibold text-sm">Photos</h3>
@@ -158,7 +158,7 @@ export default function BookSidebarContent({
 
   if (activeTab === "quotes") {
     return (
-      <div className="flex-1 border-r bg-muted/30 flex flex-col overflow-hidden min-w-[200px]">
+      <div className="flex-1 border-r border-border/50 bg-gradient-to-b from-background to-muted/20 flex flex-col overflow-hidden min-w-[200px]">
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-sm">Quotes</h3>

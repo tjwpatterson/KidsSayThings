@@ -65,11 +65,11 @@ export default function BookPagePreview({
     <div className="relative">
       {/* Single Page Preview */}
       <div
-        className="bg-white shadow-xl rounded-lg border-2 border-border mx-auto relative"
+        className="bg-white shadow-2xl rounded-xl border-2 border-border/50 mx-auto relative transition-all hover:shadow-3xl"
         style={{ width: `${pageWidth}px`, height: `${pageHeight}px` }}
       >
         {/* Layout Selector Button - appears when no layout or as badge when layout selected */}
-        <div className="absolute top-4 right-4 z-10">
+        <div className="absolute top-4 right-4 z-10 drop-shadow-lg">
           <LayoutSelectorButton layout={layout} onLayoutChange={onLayoutChange} />
         </div>
 

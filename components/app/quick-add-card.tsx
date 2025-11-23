@@ -5,13 +5,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import PersonSelect from "./person-select"
 import { useToast } from "@/components/ui/use-toast"
 import { Send, Image, Mic } from "lucide-react"
 import type { Person } from "@/lib/types"
@@ -151,29 +145,14 @@ export default function QuickAddCard({
           <Label htmlFor="person" className="text-sm font-medium">
             Who said this?
           </Label>
-          <Select
-            value={selectedPersonId || ""}
-            onValueChange={(value) => onPersonSelect(value || null)}
+          <PersonSelect
+            id="person"
+            selectedPersonId={selectedPersonId}
+            persons={persons}
+            onPersonSelect={onPersonSelect}
             disabled={loading || loadingPersons}
             required
-          >
-            <SelectTrigger id="person" className="w-full">
-              <SelectValue placeholder="Select a person (required)" />
-            </SelectTrigger>
-            <SelectContent>
-              {persons.length === 0 ? (
-                <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                  No people added yet
-                </div>
-              ) : (
-                persons.map((person) => (
-                  <SelectItem key={person.id} value={person.id}>
-                    {person.display_name}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
+          />
           {!selectedPersonId && (
             <p className="text-xs text-muted-foreground">
               You must select a person to save this quote

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
 import { useDroppable } from "@dnd-kit/core"
 import type {
   Book,
@@ -18,12 +19,21 @@ import {
   getPartialPageQuoteStyle,
   attributionStyle,
 } from "@/lib/typography"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
 import BookLayoutSelectorVisual from "./book-layout-selector-visual"
+
+// Dynamically import Popover to avoid SSR hydration issues
+const Popover = dynamic(
+  () => import("@/components/ui/popover").then((mod) => mod.Popover),
+  { ssr: false }
+)
+const PopoverTrigger = dynamic(
+  () => import("@/components/ui/popover").then((mod) => mod.PopoverTrigger),
+  { ssr: false }
+)
+const PopoverContent = dynamic(
+  () => import("@/components/ui/popover").then((mod) => mod.PopoverContent),
+  { ssr: false }
+)
 
 interface BookPagePreviewProps {
   book: Book
@@ -75,7 +85,7 @@ export default function BookPagePreview({
         style={{ width: `${pageWidth}px`, height: `${pageHeight}px` }}
       >
         {/* Layout Selector Button - appears when no layout or as badge when layout selected */}
-        <div className="absolute top-4 right-4 z-10" suppressHydrationWarning>
+        <div className="absolute top-4 right-4 z-10">
           {layout ? (
             <Popover>
               <PopoverTrigger asChild>
@@ -90,7 +100,7 @@ export default function BookPagePreview({
                   </span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80" align="end" suppressHydrationWarning>
+              <PopoverContent className="w-80" align="end">
                 <div className="space-y-4">
                   <div>
                     <h4 className="text-sm font-semibold mb-3">Page Layout</h4>
@@ -123,7 +133,7 @@ export default function BookPagePreview({
                   Choose Page Layout
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80" align="end" suppressHydrationWarning>
+              <PopoverContent className="w-80" align="end">
                 <div className="space-y-4">
                   <div>
                     <h4 className="text-sm font-semibold mb-3">Choose Page Layout</h4>

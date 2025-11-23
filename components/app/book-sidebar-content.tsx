@@ -92,14 +92,8 @@ export default function BookSidebarContent({
   onPhotosUploaded,
   onBookUpdate,
 }: BookSidebarContentProps) {
-  const [mounted, setMounted] = useState(false)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [dedication, setDedication] = useState(book?.dedication || "")
-
-  // Only render Select/Popover on client to avoid hydration mismatch
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   const filteredQuotes = useMemo(() => {
     if (!quotes || quotes.length === 0) return []
@@ -175,7 +169,7 @@ export default function BookSidebarContent({
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-sm">Quotes</h3>
           </div>
-          {mounted ? (
+          <div suppressHydrationWarning>
             <Select value={selectedPersonFilter || "all"} onValueChange={(value) => {
               try {
                 if (onPersonFilterChange) {
@@ -188,7 +182,7 @@ export default function BookSidebarContent({
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Filter by person" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent suppressHydrationWarning>
                 <SelectItem value="all">All People</SelectItem>
                 {persons && persons.length > 0 ? persons.map((person) => (
                   <SelectItem key={person.id} value={person.id}>
@@ -197,11 +191,7 @@ export default function BookSidebarContent({
                 )) : null}
               </SelectContent>
             </Select>
-          ) : (
-            <div className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm flex items-center">
-              <span className="text-muted-foreground">Filter by person</span>
-            </div>
-          )}
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto">
           <BookQuoteCarousel quotes={filteredQuotes} persons={persons || []} />

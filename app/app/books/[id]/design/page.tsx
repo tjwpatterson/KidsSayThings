@@ -1,6 +1,126 @@
-import BookDesignPageClient from "@/components/app/book-design-page-client"
+import { redirect } from "next/navigation"
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
+import { getCurrentHousehold } from "@/lib/household"
+import BookDesignerWrapper from "@/components/app/book-designer-wrapper"
+import type { Book, Entry, Person, BookPhoto, BookPage } from "@/lib/types"
 
-export default function BookDesignPage() {
-  return <BookDesignPageClient />
+export default async function BookDesignPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect("/login")
+  }
+
+  const household = await getCurrentHousehold()
+
+  if (!household) {
+    redirect("/app/onboarding")
+  }
+
+  // Fetch book
+  const { data: book, error: bookError } = await supabase
+    .from("books")
+    .select("*")
+    .eq("id", id)
+    .eq("household_id", household.id)
+    .single()
+
+  if (bookError || !book) {
+    redirect("/app/books")
+  }
+
+  // Fetch entries (quotes) for the date range
+  const { data: entries } = await supabase
+    .from("entries")
+    .select("*")
+    .eq("household_id", household.id)
+    .eq("entry_type", "quote")
+    .gte("entry_date", book.date_start)
+    .lte("entry_date", book.date_end)
+    .order("entry_date", { ascending: true })
+
+  // Fetch persons for filtering
+  const { data: persons } = await supabase
+    .from("persons")
+    .select("*")
+    .eq("household_id", household.id)
+    .order("display_name", { ascending: true })
+
+  // Fetch existing book pages
+  let pages: BookPage[] = []
+  const { data: pagesData } = await supabase
+    .from("book_pages")
+    .select("*")
+    .eq("book_id", id)
+    .order("page_number", { ascending: true })
+
+  if (pagesData) {
+    pages = pagesData.map((page) => ({
+      ...page,
+      left_content: (page.left_content as any) || [],
+      right_content: [],
+    })) as BookPage[]
+  }
+
+  // Fetch book photos
+  const { data: photos } = await supabase
+    .from("book_photos")
+    .select("*")
+    .eq("book_id", id)
+    .order("created_at", { ascending: false })
+
+  // Generate signed URLs for photos (bucket is private)
+  let photosWithSignedUrls: BookPhoto[] = []
+  if (photos && photos.length > 0) {
+    const serviceClient = await createServiceRoleClient()
+    photosWithSignedUrls = await Promise.all(
+      photos.map(async (photo: any) => {
+        let filePath = photo.path || photo.url
+        if (photo.url && photo.url.includes("/attachments/")) {
+          const parts = photo.url.split("/attachments/")
+          filePath = parts[1] || photo.filename || ""
+        } else if (photo.filename && !photo.path) {
+          filePath = `books/${id}/photos/${photo.filename}`
+        }
+
+        if (!filePath) {
+          return { ...photo, url: photo.url }
+        }
+
+        const { data: signedData, error: signedError } = await serviceClient.storage
+          .from("attachments")
+          .createSignedUrl(filePath, 3600)
+
+        if (signedError || !signedData?.signedUrl) {
+          return { ...photo, url: photo.url }
+        }
+
+        return {
+          ...photo,
+          url: signedData.signedUrl,
+        }
+      })
+    )
+  }
+
+  return (
+    <div className="h-screen flex flex-col" suppressHydrationWarning>
+      <BookDesignerWrapper
+        book={book as Book}
+        initialEntries={(entries as Entry[]) || []}
+        initialPersons={(persons as Person[]) || []}
+        initialPages={pages || []}
+        initialPhotos={photosWithSignedUrls || []}
+      />
+    </div>
+  )
 }
 

@@ -36,9 +36,10 @@ export default function ResetPasswordForm({ error }: ResetPasswordFormProps) {
 
     try {
       // Use environment variable if available, otherwise fall back to current origin
-      const redirectUrl = process.env.NEXT_PUBLIC_SITE_URL 
-        ? `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
-        : `${window.location.origin}/auth/callback`
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+        ? process.env.NEXT_PUBLIC_SITE_URL
+        : window.location.origin
+      const redirectUrl = `${baseUrl}/reset-password/complete`
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,

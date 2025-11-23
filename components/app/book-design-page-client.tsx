@@ -3,15 +3,20 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import BookDesignerWrapper from "./book-designer-wrapper"
 import type { Book, Entry, Person, BookPhoto, BookPage } from "@/lib/types"
 
 export default function BookDesignPageClient() {
   const params = useParams()
   const router = useRouter()
-  const supabase = createClient()
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [BookDesignerWrapper, setBookDesignerWrapper] = useState<React.ComponentType<{
+    book: Book
+    initialEntries: Entry[]
+    initialPersons: Person[]
+    initialPages: BookPage[]
+    initialPhotos: BookPhoto[]
+  }> | null>(null)
   const [data, setData] = useState<{
     book: Book | null
     entries: Entry[]
@@ -22,6 +27,12 @@ export default function BookDesignPageClient() {
 
   useEffect(() => {
     setMounted(true)
+    // Dynamically import BookDesignerWrapper only after mount
+    import("./book-designer-wrapper").then((mod) => {
+      setBookDesignerWrapper(() => mod.default)
+    }).catch((error) => {
+      console.error("Failed to load BookDesignerWrapper:", error)
+    })
   }, [])
 
   useEffect(() => {
@@ -36,6 +47,8 @@ export default function BookDesignPageClient() {
           router.push("/app/books")
           return
         }
+
+        const supabase = createClient()
 
         const {
           data: { user },
@@ -151,11 +164,12 @@ export default function BookDesignPageClient() {
     }
 
     loadData()
-  }, [mounted, params?.id, router, supabase])
+  }, [mounted, params?.id, router])
 
-  if (!mounted || loading || !data || !data.book) {
+  // Don't render anything until mounted AND component is loaded AND data is ready
+  if (!mounted || loading || !data || !data.book || !BookDesignerWrapper) {
     return (
-      <div className="h-screen flex items-center justify-center">
+      <div className="h-screen flex items-center justify-center" suppressHydrationWarning>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading book designer...</p>
@@ -165,7 +179,7 @@ export default function BookDesignPageClient() {
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col" suppressHydrationWarning>
       <BookDesignerWrapper
         book={data.book}
         initialEntries={data.entries}

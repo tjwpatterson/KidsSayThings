@@ -18,6 +18,7 @@ import ThemePreviewCard from "./theme-preview-card"
 import CoverStylePreview from "./cover-style-preview"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import ClientOnly from "./client-only"
 import type { Entry, Person, BookPhoto, BookThemeConfig, Book, PageLayout } from "@/lib/types"
 
 const themes: BookThemeConfig[] = [

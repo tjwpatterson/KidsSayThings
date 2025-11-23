@@ -1,12 +1,18 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import { useState } from "react"
-import BookPagePreview from "./book-page-preview"
 import BookPageThumbnails from "./book-page-thumbnails"
 import BookPageOrganizer from "./book-page-organizer"
 import { Grid3x3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { Book, BookPage, Entry, Person, BookPhoto, PageLayout } from "@/lib/types"
+
+// BookPagePreview uses LayoutSelectorButton which uses Popover, so disable SSR
+const BookPagePreview = dynamic(() => import("./book-page-preview"), {
+  ssr: false,
+  loading: () => <div className="w-full h-full flex items-center justify-center">Loading page preview...</div>
+})
 
 interface BookCanvasProps {
   book: Book

@@ -25,6 +25,7 @@ const BookSidebarContent = dynamic(() => import("./book-sidebar-content"), {
   loading: () => <div className="flex-1 border-r bg-muted/30 flex items-center justify-center min-w-[200px]">Loading...</div>
 })
 
+// BookCanvas uses LayoutSelectorButton which uses Popover, so disable SSR
 const BookCanvas = dynamic(() => import("./book-canvas"), {
   ssr: false,
   loading: () => <div className="flex-1 bg-muted/10 flex items-center justify-center">Loading canvas...</div>

@@ -208,13 +208,19 @@ export default function LoginForm() {
               <Input
                 id="code"
                 type="text"
-                placeholder="123456"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="000000"
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, "").slice(0, 6)
+                  setCode(value)
+                }}
                 maxLength={6}
                 required
                 disabled={loading}
-                className="text-center text-2xl tracking-widest"
+                className="text-center text-2xl tracking-widest font-mono"
+                autoFocus
               />
               <p className="text-xs text-muted-foreground">
                 Enter the 6-digit code sent to {phone}

@@ -1,3 +1,5 @@
+"use client"
+
 import dynamic from "next/dynamic"
 
 // Force client-side only rendering - no SSR at all

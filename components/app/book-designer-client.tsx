@@ -14,10 +14,12 @@ import type {
   PageContentItem,
 } from "@/lib/types"
 import { useToast } from "@/components/ui/use-toast"
-import BookToolbar from "./book-toolbar"
-import BookLeftSidebar from "./book-left-sidebar"
-import ResizableSidebar from "./resizable-sidebar"
 import { createClient } from "@/lib/supabase/client"
+
+// Dynamically import ALL components to prevent any SSR
+const BookToolbar = dynamic(() => import("./book-toolbar"), { ssr: false })
+const BookLeftSidebar = dynamic(() => import("./book-left-sidebar"), { ssr: false })
+const ResizableSidebar = dynamic(() => import("./resizable-sidebar"), { ssr: false })
 
 // Dynamically import components that use Popover/Select with SSR disabled
 const BookSidebarContent = dynamic(() => import("./book-sidebar-content"), {
@@ -569,6 +571,25 @@ export default function BookDesignerClient({
   // Return null on server to prevent any hydration mismatch
   if (typeof window === "undefined") {
     return null
+  }
+
+  // Additional safety check - don't render until we're sure we're on client
+  const [clientReady, setClientReady] = useState(false)
+  
+  useEffect(() => {
+    // Small delay to ensure we're fully on client
+    setClientReady(true)
+  }, [])
+
+  if (!clientReady) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

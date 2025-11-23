@@ -65,12 +65,6 @@ export default function BookDesignerClient({
   const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab>("photos")
   const [selectedPersonFilter, setSelectedPersonFilter] = useState<string>("all")
   const [zoom, setZoom] = useState(100)
-  const [mounted, setMounted] = useState(false)
-
-  // Only render after mount to prevent hydration issues
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   // Configure drag sensors for better drag detection
   const sensors = useSensors(
@@ -571,20 +565,6 @@ export default function BookDesignerClient({
       setPages(prev => [...prev].sort((a, b) => a.page_number - b.page_number))
     }
   }, [book.id, toast])
-
-  // Don't render until mounted
-  if (!mounted) {
-    return (
-      <div className="flex flex-col h-full">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <DndContext

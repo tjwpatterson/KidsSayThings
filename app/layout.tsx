@@ -1,7 +1,15 @@
 import type { Metadata } from "next"
 import { Inter, Playfair_Display } from "next/font/google"
 import "./globals.css"
-import { Toaster } from "@/components/ui/toaster"
+import dynamic from "next/dynamic"
+
+// Dynamically import Toaster with SSR disabled to prevent hydration errors
+const Toaster = dynamic(
+  () => import("@/components/ui/toaster").then((mod) => ({ default: mod.Toaster })),
+  {
+    ssr: false,
+  }
+)
 
 const inter = Inter({
   subsets: ["latin"],

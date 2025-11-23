@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import AppNav from "@/components/app/app-nav"
+import ClientChildrenWrapper from "@/components/app/client-children-wrapper"
 
 export default function AppLayout({
   children,
@@ -52,32 +53,13 @@ export default function AppLayout({
   }
 
   // Wrap children to ensure they're treated as client-side
-  // Use a wrapper component to ensure children are client-side only
-  const [childrenReady, setChildrenReady] = useState(false)
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      // Delay rendering children to ensure they're client-side only
-      const timer = setTimeout(() => {
-        setChildrenReady(true)
-      }, 0)
-      return () => clearTimeout(timer)
-    }
-  }, [isAuthenticated])
-
   return (
     <div className="flex h-screen flex-col overflow-hidden" suppressHydrationWarning>
       <AppNav />
       <main className="flex-1 overflow-hidden" suppressHydrationWarning>
-        {childrenReady ? (
-          <div suppressHydrationWarning>
-            {children}
-          </div>
-        ) : (
-          <div className="h-full flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        )}
+        <ClientChildrenWrapper>
+          {children}
+        </ClientChildrenWrapper>
       </main>
     </div>
   )

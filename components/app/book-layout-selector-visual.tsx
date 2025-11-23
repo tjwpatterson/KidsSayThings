@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import type { PageLayout } from "@/lib/types"
 
@@ -14,6 +15,11 @@ export default function BookLayoutSelectorVisual({
   onSelect,
   type,
 }: BookLayoutSelectorVisualProps) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   // Simplified to 2 layout options:
   // A: Full page photo with small margin
   // B: Photo 2/3 + Quote 1/3 (photo can be top or bottom)
@@ -69,6 +75,16 @@ export default function BookLayoutSelectorVisual({
             ),
           },
         ]
+
+  // Don't render until mounted to prevent hydration issues
+  if (!mounted) {
+    return (
+      <div className="grid grid-cols-2 gap-2">
+        <div className="p-2 rounded-lg border-2 border-border animate-pulse bg-muted h-24" />
+        <div className="p-2 rounded-lg border-2 border-border animate-pulse bg-muted h-24" />
+      </div>
+    )
+  }
 
   return (
     <div className="grid grid-cols-2 gap-2">

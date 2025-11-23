@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Upload } from "lucide-react"
 import BookPhotoCarousel from "./book-photo-carousel"
@@ -86,14 +86,28 @@ export default function BookSidebarContent({
   onPhotosUploaded,
   onBookUpdate,
 }: BookSidebarContentProps) {
+  const [mounted, setMounted] = useState(false)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [dedication, setDedication] = useState(book?.dedication || "")
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const filteredQuotes = useMemo(() => {
     if (!quotes || quotes.length === 0) return []
     if (selectedPersonFilter === "all") return quotes
     return quotes.filter((q) => q.said_by === selectedPersonFilter)
   }, [quotes, selectedPersonFilter])
+
+  // Don't render until mounted to prevent hydration issues
+  if (!mounted) {
+    return (
+      <div className="flex-1 border-r bg-muted/30 flex items-center justify-center min-w-[200px]">
+        <div className="text-sm text-muted-foreground">Loading...</div>
+      </div>
+    )
+  }
 
   const handleThemeChange = async (themeId: string) => {
     await onBookUpdate({ theme: themeId as "classic" | "playful" })

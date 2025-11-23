@@ -2,7 +2,7 @@
 
 import { useDraggable } from "@dnd-kit/core"
 import { ChevronUp, ChevronDown } from "lucide-react"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import type { Entry, Person } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
@@ -16,8 +16,13 @@ export default function BookQuoteCarousel({
   quotes = [],
   persons = [],
 }: BookQuoteCarouselProps) {
+  const [mounted, setMounted] = useState(false)
   const [scrollPosition, setScrollPosition] = useState(0)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const scroll = (direction: "up" | "down") => {
     if (!scrollContainerRef.current) return
@@ -41,6 +46,15 @@ export default function BookQuoteCarousel({
   const getPersonName = (personId: string | null) => {
     if (!personId || !persons || persons.length === 0) return null
     return persons.find((p) => p.id === personId)?.display_name || null
+  }
+
+  // Don't render until mounted to prevent hydration issues
+  if (!mounted) {
+    return (
+      <div className="flex flex-col h-full relative items-center justify-center">
+        <div className="text-sm text-muted-foreground">Loading quotes...</div>
+      </div>
+    )
   }
 
   return (

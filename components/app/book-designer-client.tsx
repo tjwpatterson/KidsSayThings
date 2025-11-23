@@ -69,6 +69,13 @@ export default function BookDesignerClient({
   const [zoom, setZoom] = useState(100)
   const [clientReady, setClientReady] = useState(false)
 
+  // Set clientReady after mount - must be called unconditionally
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setClientReady(true)
+    }
+  }, [])
+
   // Configure drag sensors for better drag detection
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -575,11 +582,6 @@ export default function BookDesignerClient({
   }
 
   // Additional safety check - don't render until we're sure we're on client
-  useEffect(() => {
-    // Small delay to ensure we're fully on client
-    setClientReady(true)
-  }, [])
-
   if (!clientReady) {
     return (
       <div className="h-screen flex items-center justify-center">

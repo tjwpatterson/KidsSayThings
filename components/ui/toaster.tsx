@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import {
   Toast,
   ToastClose,
@@ -12,6 +13,17 @@ import { useToast } from "@/components/ui/use-toast"
 
 export function Toaster() {
   const { toasts } = useToast()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Don't render until mounted to prevent hydration mismatch
+  // The toasts array might be different between server and client
+  if (!mounted) {
+    return null
+  }
 
   return (
     <ToastProvider>

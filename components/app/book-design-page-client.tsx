@@ -29,11 +29,24 @@ export default function BookDesignPageClient() {
 
     const loadData = async () => {
       try {
-        const id = params.id as string
+        const id = params?.id as string
+
+        if (!id) {
+          console.error("No book ID in params")
+          router.push("/app/books")
+          return
+        }
 
         const {
           data: { user },
+          error: authError,
         } = await supabase.auth.getUser()
+
+        if (authError) {
+          console.error("Auth error:", authError)
+          router.push("/login")
+          return
+        }
 
         if (!user) {
           router.push("/login")
@@ -106,11 +119,20 @@ export default function BookDesignPageClient() {
         // Generate signed URLs for photos
         let photosWithSignedUrls: BookPhoto[] = []
         if (photos && photos.length > 0) {
-          // Use service role client for signed URLs
-          const { data: signedUrls } = await fetch(`/api/books/${id}/photos`).then((r) =>
-            r.json()
-          )
-          photosWithSignedUrls = signedUrls || photos
+          try {
+            // Use API route to get signed URLs
+            const res = await fetch(`/api/books/${id}/photos`)
+            if (res.ok) {
+              const signedUrls = await res.json()
+              photosWithSignedUrls = signedUrls || photos
+            } else {
+              console.warn("Failed to get signed URLs, using original URLs")
+              photosWithSignedUrls = photos
+            }
+          } catch (error) {
+            console.error("Error fetching signed URLs:", error)
+            photosWithSignedUrls = photos // Fallback to original URLs
+          }
         }
 
         setData({
@@ -129,9 +151,9 @@ export default function BookDesignPageClient() {
     }
 
     loadData()
-  }, [mounted, params.id, router, supabase])
+  }, [mounted, params?.id, router, supabase])
 
-  if (!mounted || loading || !data) {
+  if (!mounted || loading || !data || !data.book) {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="text-center">
@@ -145,7 +167,7 @@ export default function BookDesignPageClient() {
   return (
     <div className="h-screen flex flex-col">
       <BookDesignerWrapper
-        book={data.book!}
+        book={data.book}
         initialEntries={data.entries}
         initialPersons={data.persons}
         initialPages={data.pages}

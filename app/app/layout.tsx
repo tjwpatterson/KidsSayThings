@@ -51,11 +51,14 @@ export default function AppLayout({
     )
   }
 
+  // Wrap children to ensure they're treated as client-side
   return (
     <div className="flex h-screen flex-col overflow-hidden" suppressHydrationWarning>
       <AppNav />
       <main className="flex-1 overflow-hidden" suppressHydrationWarning>
-        {children}
+        <div suppressHydrationWarning>
+          {children}
+        </div>
       </main>
     </div>
   )

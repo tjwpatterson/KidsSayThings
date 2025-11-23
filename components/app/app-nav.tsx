@@ -47,24 +47,24 @@ export default function AppNav() {
           SaySo
         </Link>
         <div className="flex items-center gap-4">
-          <Link href="/app">
-            <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/app">
               <FileText className="h-4 w-4 mr-2" />
               Entries
-            </Button>
-          </Link>
-          <Link href="/app/books">
-            <Button variant="ghost" size="sm">
+            </Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/app/books">
               <BookOpen className="h-4 w-4 mr-2" />
               Books
-            </Button>
-          </Link>
-          <Link href="/app/settings">
-            <Button variant="ghost" size="sm">
+            </Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/app/settings">
               <Settings className="h-4 w-4 mr-2" />
               Settings
-            </Button>
-          </Link>
+            </Link>
+          </Button>
           {user && <SignOutButton />}
         </div>
       </div>

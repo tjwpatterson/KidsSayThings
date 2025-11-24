@@ -43,8 +43,26 @@ export default function PasswordRecoveryForm() {
   const router = useRouter()
 
   useEffect(() => {
-    async function hydrateSessionFromHash() {
+    async function hydrateSessionFromLink() {
       if (typeof window === "undefined") {
+        return
+      }
+
+      const url = new URL(window.location.href)
+      const code = url.searchParams.get("code")
+
+      if (code) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+
+        if (error || !data.session) {
+          setStatus("invalid")
+          setLinkError("This reset link is invalid or has expired. Please request a fresh link.")
+          return
+        }
+
+        url.searchParams.delete("code")
+        window.history.replaceState({}, document.title, url.pathname + url.search)
+        setStatus("ready")
         return
       }
 
@@ -77,12 +95,11 @@ export default function PasswordRecoveryForm() {
         return
       }
 
-      // Remove the hash from the URL for a cleaner experience
       window.history.replaceState({}, document.title, window.location.pathname)
       setStatus("ready")
     }
 
-    hydrateSessionFromHash()
+    hydrateSessionFromLink()
   }, [supabase])
 
   const passwordChecks = useMemo(() => {

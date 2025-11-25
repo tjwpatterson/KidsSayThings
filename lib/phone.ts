@@ -1,5 +1,3 @@
-"use server"
-
 /**
  * Normalize a phone number into E.164 format.
  * Defaults to US (+1) if no country code is present.

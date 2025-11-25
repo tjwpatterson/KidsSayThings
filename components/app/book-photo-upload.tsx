@@ -1,14 +1,6 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Upload, X, Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
@@ -16,6 +8,32 @@ import { createClient } from "@/lib/supabase/client"
 import type { BookPhoto } from "@/lib/types"
 import heic2any from "heic2any"
 
+import dynamic from "next/dynamic"
+
+const Dialog = dynamic(
+  () => import("@/components/ui/dialog").then((mod) => mod.Dialog),
+  { ssr: false, loading: () => null }
+)
+const DialogContent = dynamic(
+  () => import("@/components/ui/dialog").then((mod) => mod.DialogContent),
+  { ssr: false, loading: () => null }
+)
+const DialogDescription = dynamic(
+  () => import("@/components/ui/dialog").then((mod) => mod.DialogDescription),
+  { ssr: false, loading: () => null }
+)
+const DialogFooter = dynamic(
+  () => import("@/components/ui/dialog").then((mod) => mod.DialogFooter),
+  { ssr: false, loading: () => null }
+)
+const DialogHeader = dynamic(
+  () => import("@/components/ui/dialog").then((mod) => mod.DialogHeader),
+  { ssr: false, loading: () => null }
+)
+const DialogTitle = dynamic(
+  () => import("@/components/ui/dialog").then((mod) => mod.DialogTitle),
+  { ssr: false, loading: () => null }
+)
 interface BookPhotoUploadProps {
   bookId: string
   isOpen: boolean

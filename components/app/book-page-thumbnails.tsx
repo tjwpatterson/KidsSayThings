@@ -198,15 +198,16 @@ export default function BookPageThumbnails({
                 />
               )
             })}
-          <button
-            onClick={onAddPage}
-            className="w-28 h-32 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-primary/60 bg-primary/10 hover:border-primary hover:bg-primary/20 transition-all shrink-0 group cursor-pointer hover:scale-105 hover:shadow-lg"
-            title="Add New Page"
-          >
-            <span className="text-3xl text-primary mb-1 group-hover:scale-110 transition-transform">+</span>
-            <span className="text-[10px] font-semibold text-primary">Add Page</span>
-          </button>
-        </div>
+            <button
+              onClick={onAddPage}
+              className="w-28 h-32 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-primary/60 bg-primary/10 hover:border-primary hover:bg-primary/20 transition-all shrink-0 group cursor-pointer hover:scale-105 hover:shadow-lg"
+              title="Add New Page"
+            >
+              <span className="text-3xl text-primary mb-1 group-hover:scale-110 transition-transform">+</span>
+              <span className="text-[10px] font-semibold text-primary">Add Page</span>
+            </button>
+          </div>
+        </SortableContext>
       </div>
 
       {/* Right Arrow */}

@@ -4,7 +4,9 @@
  * Normalize a phone number into E.164 format.
  * Defaults to US (+1) if no country code is present.
  */
-export function normalizePhoneNumber(raw: string | null | undefined): string | null {
+export const normalizePhoneNumber = (
+  raw: string | null | undefined
+): string | null => {
   if (!raw) return null
   const trimmed = raw.trim()
   if (!trimmed) return null

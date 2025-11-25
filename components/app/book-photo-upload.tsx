@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -29,6 +29,7 @@ export default function BookPhotoUpload({
   onClose,
   onUploaded,
 }: BookPhotoUploadProps) {
+  const [mounted, setMounted] = useState(false)
   const [files, setFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
@@ -36,6 +37,10 @@ export default function BookPhotoUpload({
   const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -309,6 +314,10 @@ export default function BookPhotoUpload({
     } finally {
       setUploading(false)
     }
+  }
+
+  if (!mounted) {
+    return null
   }
 
   return (

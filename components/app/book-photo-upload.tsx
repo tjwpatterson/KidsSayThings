@@ -7,33 +7,6 @@ import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
 import type { BookPhoto } from "@/lib/types"
 import heic2any from "heic2any"
-
-import dynamic from "next/dynamic"
-
-const Dialog = dynamic(
-  () => import("@/components/ui/dialog").then((mod) => mod.Dialog),
-  { ssr: false, loading: () => null }
-)
-const DialogContent = dynamic(
-  () => import("@/components/ui/dialog").then((mod) => mod.DialogContent),
-  { ssr: false, loading: () => null }
-)
-const DialogDescription = dynamic(
-  () => import("@/components/ui/dialog").then((mod) => mod.DialogDescription),
-  { ssr: false, loading: () => null }
-)
-const DialogFooter = dynamic(
-  () => import("@/components/ui/dialog").then((mod) => mod.DialogFooter),
-  { ssr: false, loading: () => null }
-)
-const DialogHeader = dynamic(
-  () => import("@/components/ui/dialog").then((mod) => mod.DialogHeader),
-  { ssr: false, loading: () => null }
-)
-const DialogTitle = dynamic(
-  () => import("@/components/ui/dialog").then((mod) => mod.DialogTitle),
-  { ssr: false, loading: () => null }
-)
 interface BookPhotoUploadProps {
   bookId: string
   isOpen: boolean
@@ -59,6 +32,17 @@ export default function BookPhotoUpload({
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+    if (isOpen) {
+      const previousOverflow = document.body.style.overflow
+      document.body.style.overflow = "hidden"
+      return () => {
+        document.body.style.overflow = previousOverflow
+      }
+    }
+  }, [isOpen, mounted])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -334,22 +318,40 @@ export default function BookPhotoUpload({
     }
   }
 
-  if (!mounted) {
+  if (!mounted || !isOpen) {
     return null
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Upload Photos</DialogTitle>
-          <DialogDescription>
-            Select multiple photos to add to your book. You can upload them all at
-            once.
-          </DialogDescription>
-        </DialogHeader>
+    <div className="fixed inset-0 z-[200]">
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={() => {
+          if (!uploading) {
+            onClose()
+          }
+        }}
+      />
+      <div className="absolute inset-0 flex items-center justify-center px-4 py-8 overflow-y-auto">
+        <div className="relative w-full max-w-2xl rounded-2xl bg-background shadow-2xl border border-border animate-in fade-in zoom-in">
+          <div className="flex items-center justify-between border-b px-6 py-4">
+            <div>
+              <h2 className="text-xl font-semibold">Upload Photos</h2>
+              <p className="text-sm text-muted-foreground">
+                Select multiple photos to add to your book. You can upload them all at once.
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              disabled={uploading}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 px-6 py-6">
           <div
             ref={dropZoneRef}
             onDragOver={handleDragOver}
@@ -424,7 +426,7 @@ export default function BookPhotoUpload({
           )}
         </div>
 
-        <DialogFooter>
+        <div className="flex items-center justify-end gap-2 border-t px-6 py-4 bg-muted/20 rounded-b-2xl">
           <Button variant="outline" onClick={onClose} disabled={uploading}>
             Cancel
           </Button>
@@ -441,9 +443,10 @@ export default function BookPhotoUpload({
               </>
             )}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+        </div>
+      </div>
+    </div>
   )
 }
 

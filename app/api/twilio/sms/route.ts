@@ -1,5 +1,3 @@
-"use server"
-
 import twilio from "twilio"
 import { NextResponse } from "next/server"
 import { normalizePhoneNumber } from "@/lib/phone"

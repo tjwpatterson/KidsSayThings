@@ -71,27 +71,6 @@ export default function BookCanvas({
       <div className="flex-1 bg-gradient-to-br from-background via-muted/20 to-background flex flex-col">
         <div className="flex-1 flex flex-col items-center justify-center p-6 min-h-full">
           <div className="w-full max-w-6xl space-y-6">
-            {/* Page Carousel - Above Page Preview */}
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex-1">
-                <BookPageThumbnails
-                  pages={pages}
-                  currentPage={currentPageNumber}
-                  onPageSelect={onPageSelect}
-                  onAddPage={onAddPage}
-                />
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowOrganizer(true)}
-                className="ml-4 gap-2"
-              >
-                <Grid3x3 className="h-4 w-4" />
-                Organize Pages
-              </Button>
-            </div>
-
             {/* Page Type Label */}
             {pageLabel && (
               <div className="mb-4 justify-center flex">
@@ -113,6 +92,32 @@ export default function BookCanvas({
                 onLayoutChange={onLayoutChange}
                 onRemoveItem={onRemoveItem}
               />
+            </div>
+
+            {/* Page Carousel - Below Page Preview */}
+            <div className="mt-6 flex items-center justify-between">
+              <div className="flex-1">
+                <BookPageThumbnails
+                  pages={pages}
+                  currentPage={currentPageNumber}
+                  onPageSelect={onPageSelect}
+                  onAddPage={onAddPage}
+                  onPageReorder={onPageReorder}
+                  photos={photos}
+                  quotes={quotes}
+                  persons={persons}
+                  layout={layout}
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowOrganizer(true)}
+                className="ml-4 gap-2"
+              >
+                <Grid3x3 className="h-4 w-4" />
+                Organize Pages
+              </Button>
             </div>
           </div>
         </div>

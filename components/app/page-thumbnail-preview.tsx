@@ -34,6 +34,14 @@ export default function PageThumbnailPreview({
     }
   }
 
+  const isPhoto = (item: BookPhoto | Entry | undefined): item is BookPhoto => {
+    return Boolean(item && typeof (item as BookPhoto).url === "string")
+  }
+
+  const isQuote = (item: BookPhoto | Entry | undefined): item is Entry => {
+    return Boolean(item && typeof (item as Entry).text === "string")
+  }
+
   const content = page?.left_content || []
 
   if (!layout) {
@@ -50,7 +58,7 @@ export default function PageThumbnailPreview({
         const itemA = content[0]
         if (itemA) {
           const item = getContentItem(itemA.id, itemA.type)
-          if (itemA.type === "photo" && item) {
+          if (itemA.type === "photo" && isPhoto(item)) {
             return (
               <div className="w-full h-full p-0.5 rounded overflow-hidden">
                 <img
@@ -60,7 +68,7 @@ export default function PageThumbnailPreview({
                 />
               </div>
             )
-          } else if (itemA.type === "quote" && item) {
+          } else if (itemA.type === "quote" && isQuote(item)) {
             return (
               <div className="w-full h-full flex items-center justify-center p-1 bg-white rounded">
                 <p className="text-[5px] font-serif text-center leading-tight line-clamp-3">
@@ -83,20 +91,36 @@ export default function PageThumbnailPreview({
           <div className="w-full h-full flex flex-col gap-0.5 p-0.5 bg-white rounded">
             {photoItem ? (
               <div className="flex-[2] rounded overflow-hidden">
-                <img
-                  src={getContentItem(photoItem.id, "photo")?.url || ""}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
+                {(() => {
+                  const photo = getContentItem(photoItem.id, "photo")
+                  if (isPhoto(photo)) {
+                    return (
+                      <img
+                        src={photo.url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    )
+                  }
+                  return <div className="w-full h-full bg-muted/30 border border-dashed border-muted-foreground/20 rounded" />
+                })()}
               </div>
             ) : (
               <div className="flex-[2] bg-muted/30 border border-dashed border-muted-foreground/20 rounded" />
             )}
             {quoteItem ? (
               <div className="flex-1 flex items-center justify-center p-0.5 bg-muted/10 rounded">
-                <p className="text-[4px] font-serif text-center leading-tight line-clamp-1">
-                  {getContentItem(quoteItem.id, "quote")?.text || ""}
-                </p>
+                {(() => {
+                  const quote = getContentItem(quoteItem.id, "quote")
+                  if (isQuote(quote)) {
+                    return (
+                      <p className="text-[4px] font-serif text-center leading-tight line-clamp-1">
+                        {quote.text}
+                      </p>
+                    )
+                  }
+                  return null
+                })()}
               </div>
             ) : (
               <div className="flex-1 bg-muted/20 border border-dashed border-muted-foreground/20 rounded" />

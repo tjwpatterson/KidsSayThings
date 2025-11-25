@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useEffect, useState } from "react"
+import { useRef, useEffect, useState, type MutableRefObject } from "react"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -278,7 +278,7 @@ function SortableThumbnail({
   page: BookPage | undefined
   isActive: boolean
   maxPage: number
-  currentPageRef: React.RefObject<HTMLButtonElement> | null
+  currentPageRef: MutableRefObject<HTMLButtonElement | null> | null
   onPageSelect: (pageNumber: number) => void
   photos: BookPhoto[]
   quotes: Entry[]

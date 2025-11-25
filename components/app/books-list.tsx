@@ -17,6 +17,7 @@ import { useToast } from "@/components/ui/use-toast"
 import Link from "next/link"
 import { format, formatDistanceToNow } from "date-fns"
 import type { Book } from "@/lib/types"
+import { useRouter } from "next/navigation"
 
 interface BooksListProps {
   householdId: string
@@ -27,8 +28,10 @@ export default function BooksList({ householdId }: BooksListProps) {
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState<string | null>(null)
+  const [generating, setGenerating] = useState(false)
   const supabase = createClient()
   const { toast } = useToast()
+  const router = useRouter()
 
   useEffect(() => {
     loadBooks()
@@ -53,6 +56,43 @@ export default function BooksList({ householdId }: BooksListProps) {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleAutoGenerateYear = async () => {
+    setGenerating(true)
+    try {
+      const response = await fetch("/api/books/auto-generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      })
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || "Failed to auto-generate book")
+      }
+
+      const data = await response.json()
+
+      toast({
+        title: "Book generated",
+        description: `${data.book.title || "New book"} is ready to refine.`,
+      })
+
+      setBooks((prev) => {
+        const filtered = prev.filter((book) => book.id !== data.book.id)
+        return [data.book, ...filtered]
+      })
+
+      router.push(`/app/books/${data.book.id}/design`)
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to auto-generate book",
+        variant: "destructive",
+      })
+    } finally {
+      setGenerating(false)
     }
   }
 
@@ -109,11 +149,28 @@ export default function BooksList({ householdId }: BooksListProps) {
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-6 flex flex-wrap gap-3">
+        <Button
+          variant="outline"
+          onClick={handleAutoGenerateYear}
+          disabled={generating}
+        >
+          {generating ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Building Yearly Book…
+            </>
+          ) : (
+            <>
+              <Plus className="h-4 w-4 mr-2" />
+              Auto-generate Yearly Book
+            </>
+          )}
+        </Button>
         <Link href="/app/books/new">
-          <Button>
+          <Button variant="secondary">
             <Plus className="h-4 w-4 mr-2" />
-            Create New Book
+            Create Custom Book
           </Button>
         </Link>
       </div>

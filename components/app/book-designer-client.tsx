@@ -307,31 +307,31 @@ export default function BookDesignerClient({
   // Auto-generate book
   const handleAutoGenerate = useCallback(async () => {
     try {
-      const res = await fetch(`/api/books/${book.id}/render`, {
+      const res = await fetch(`/api/books/${book.id}/auto-generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       })
 
       if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.message || "Failed to generate book")
+        const error = await res.json().catch(() => ({}))
+        throw new Error(error.error || "Failed to auto-generate book")
       }
 
-      const { data: pagesData } = await supabase
-        .from("book_pages")
-        .select("*")
-        .eq("book_id", book.id)
-        .order("page_number", { ascending: true })
+      const data = await res.json()
+      const pagesData = data.pages || []
 
-      if (pagesData) {
-        setPages(pagesData.map((page) => ({
+      setPages(
+        pagesData.map((page: BookPage) => ({
           ...page,
           left_content: (page.left_content as any) || [],
           right_content: [],
-        })) as BookPage[])
-      }
-
-      toast({ title: "Book generated", description: "Pages have been auto-generated." })
+        }))
+      )
+      setCurrentPage(1)
+      toast({
+        title: "Book regenerated",
+        description: "We refreshed your pages from this year’s entries.",
+      })
     } catch (error: any) {
       toast({
         title: "Error",
@@ -339,7 +339,7 @@ export default function BookDesignerClient({
         variant: "destructive",
       })
     }
-  }, [book.id, supabase, toast])
+  }, [book.id, toast])
 
   // Drag handlers
   const handleDragStart = (event: any) => {

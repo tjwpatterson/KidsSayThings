@@ -86,6 +86,10 @@ TWILIO_AUTH_TOKEN=...
 TWILIO_NUMBER=...
 ```
 
+- Point your Twilio number’s SMS webhook to `https://<your-domain>/api/twilio/sms`.
+- Store approved parent numbers in the `parent_phone_numbers` table (use E.164 format, e.g. `+15551234567`).
+- See [`docs/SMS_SETUP.md`](docs/SMS_SETUP.md) for the full walkthrough.
+
 ### 6. Run Development Server
 
 ```bash

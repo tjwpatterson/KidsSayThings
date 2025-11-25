@@ -98,3 +98,36 @@ Supabase has a built-in SMS service but it's limited:
 
 For production, use Twilio or another provider.
 
+---
+
+## Step 3: Link Parent Phone Numbers
+
+SaySo looks up incoming SMS messages by the sender’s phone number. Each parent number must be linked to a household/user.
+
+1. Open the Supabase SQL editor or Table editor.
+2. Insert rows into the new `parent_phone_numbers` table:
+
+```sql
+insert into parent_phone_numbers (household_id, user_id, phone_number, label)
+values
+  ('<household_uuid>', '<user_uuid>', '+15551234567', 'Mom'),
+  ('<household_uuid>', '<user_uuid>', '+15557654321', 'Dad');
+```
+
+- Use **E.164** format (`+1` for US numbers).
+- `user_id` should be the Supabase auth user that will appear as `captured_by` on entries.
+
+---
+
+## Step 4: Configure the Inbound SMS Webhook
+
+1. In Twilio Console, go to **Phone Numbers → Active numbers**.
+2. Select your SaySo number.
+3. Under **Messaging → A message comes in**, set:
+   - URL: `https://<your-domain>/api/twilio/sms`
+   - Method: `POST`
+4. Save changes.
+
+> Each incoming SMS must follow the pattern `Name: quote` or `Name - quote`. The name is matched (case-insensitive) to the kids on that household. Confirmation or error messages are sent back automatically.
+
+

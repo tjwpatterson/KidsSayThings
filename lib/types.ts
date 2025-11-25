@@ -146,6 +146,16 @@ export interface Reminder {
   created_at: string
 }
 
+export interface ParentPhoneNumber {
+  id: string
+  household_id: string
+  user_id: string
+  phone_number: string
+  label?: string | null
+  verified: boolean
+  created_at: string
+}
+
 
 
 

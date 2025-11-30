@@ -21,7 +21,7 @@ import BookPageThumbnails from "./book-page-thumbnails"
 import ResizableSidebar from "./resizable-sidebar"
 import { createClient } from "@/lib/supabase/client"
 
-type SidebarTab = "photos" | "quotes" | "theme" | "settings"
+type SidebarTab = "photos" | "quotes" | "layouts" | "settings"
 
 interface BookDesignerProps {
   book: Book

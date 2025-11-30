@@ -663,16 +663,15 @@ export default function BookDesigner({
           {/* Center Canvas */}
           <div className="flex-1 overflow-auto relative" style={{ zoom: `${zoom}%` }}>
             <BookCanvas
-                book={book}
               currentPage={currentPageData}
               layout={layout}
-                photos={allPhotos}
-                quotes={allQuotes}
-                persons={initialPersons}
+              photos={allPhotos}
+              quotes={allQuotes}
+              persons={initialPersons}
               totalPages={Math.max(pages.length, currentPage, 1)}
               pages={pages}
               onLayoutChange={handleLayoutChange}
-                onRemoveItem={handleRemoveItem}
+              onRemoveItem={handleRemoveItem}
               onPageSelect={setCurrentPage}
               onPageReorder={async (reorderedPages: BookPage[]) => {
                 // Update page numbers in database

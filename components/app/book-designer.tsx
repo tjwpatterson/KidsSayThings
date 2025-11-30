@@ -646,6 +646,17 @@ export default function BookDesigner({
               onPersonFilterChange={setSelectedPersonFilter}
               onPhotosUploaded={handlePhotosUploaded}
               onBookUpdate={handleBookUpdate}
+              spreadKind="interior"
+              selectedPhotoCount={1}
+              selectedQuoteCount={1}
+              selectedLeftLayoutId={null}
+              selectedRightLayoutId={null}
+              selectedCoverLayoutId={null}
+              onPhotoCountChange={() => {}}
+              onQuoteCountChange={() => {}}
+              onSelectLeftLayout={() => {}}
+              onSelectRightLayout={() => {}}
+              onSelectCoverLayout={() => {}}
             />
           </ResizableSidebar>
 

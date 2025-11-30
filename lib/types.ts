@@ -6,7 +6,44 @@ export type BookTheme = "classic" | "playful"
 export type BookCoverStyle = "linen" | "solid" | "gradient"
 export type BookStatus = "draft" | "rendering" | "ready" | "error"
 export type BookDesignMode = "auto" | "manual" | null
-export type PageLayout = "A" | "B" | "C"
+/**
+ * TODO: Align these layout + spread types with the backend schema once the
+ * book_pages table stores curated layout metadata directly.
+ */
+export type PageLayout = string
+export type SpreadKind = "cover" | "interior"
+export type LayoutCategory = "cover" | "photo" | "quote"
+
+export interface LayoutSlot {
+  id: string
+  kind: "photo" | "quote"
+  pageSide: "left" | "right"
+  xPct: number
+  yPct: number
+  widthPct: number
+  heightPct: number
+}
+
+export interface Layout {
+  id: string
+  name: string
+  category: LayoutCategory
+  photoCount: number
+  quoteCount: number
+  slots: LayoutSlot[]
+}
+
+export interface BookSpread {
+  id: string
+  bookId: string
+  index: number
+  kind: SpreadKind
+  layoutId: string | null
+  assignedPhotoIds: string[]
+  assignedEntryIds: string[]
+}
+
+export const DEFAULT_INTERIOR_PAGES = 24
 export type ReminderChannel = "email" | "sms"
 export type ReminderFrequency = "daily" | "weekly" | "monthly"
 export type HouseholdRole = "owner" | "admin" | "member"
@@ -93,6 +130,8 @@ export interface PageContentItem {
   position?: { x: number; y: number; width?: number; height?: number }
   crop?: { x: number; y: number; width: number; height: number }
   zoom?: number
+  pageSide?: "left" | "right"
+  slotId?: string
 }
 
 export interface BookPage {

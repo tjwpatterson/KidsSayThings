@@ -6,13 +6,13 @@ import { Upload } from "lucide-react"
 import BookPhotoCarousel from "./book-photo-carousel"
 import BookQuoteCarousel from "./book-quote-carousel"
 import BookPhotoUpload from "./book-photo-upload"
-import BookLayoutSelectorVisual from "./book-layout-selector-visual"
 import ThemePreviewCard from "./theme-preview-card"
 import CoverStylePreview from "./cover-style-preview"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import PersonFilterSelect from "./person-filter-select"
-import type { Entry, Person, BookPhoto, BookThemeConfig, Book, PageLayout } from "@/lib/types"
+import BookLayoutsPanel from "./book-layouts-panel"
+import type { Entry, Person, BookPhoto, BookThemeConfig, Book, SpreadKind } from "@/lib/types"
 
 const themes: BookThemeConfig[] = [
   {
@@ -59,7 +59,7 @@ const themes: BookThemeConfig[] = [
   },
 ]
 
-type SidebarTab = "photos" | "quotes" | "theme" | "settings"
+type SidebarTab = "photos" | "quotes" | "layouts" | "settings"
 
 interface BookSidebarContentProps {
   activeTab: SidebarTab
@@ -72,6 +72,17 @@ interface BookSidebarContentProps {
   onPersonFilterChange: (personId: string) => void
   onPhotosUploaded: (photos: BookPhoto[]) => void
   onBookUpdate: (updates: Partial<Book>) => Promise<void>
+  spreadKind: SpreadKind
+  selectedPhotoCount: number
+  selectedQuoteCount: number
+  selectedLeftLayoutId: string | null
+  selectedRightLayoutId: string | null
+  selectedCoverLayoutId: string | null
+  onPhotoCountChange: (count: number) => void
+  onQuoteCountChange: (count: number) => void
+  onSelectLeftLayout: (layoutId: string) => void
+  onSelectRightLayout: (layoutId: string) => void
+  onSelectCoverLayout: (layoutId: string) => void
 }
 
 export default function BookSidebarContent({
@@ -85,6 +96,17 @@ export default function BookSidebarContent({
   onPersonFilterChange,
   onPhotosUploaded,
   onBookUpdate,
+  spreadKind,
+  selectedPhotoCount,
+  selectedQuoteCount,
+  selectedLeftLayoutId,
+  selectedRightLayoutId,
+  selectedCoverLayoutId,
+  onPhotoCountChange,
+  onQuoteCountChange,
+  onSelectLeftLayout,
+  onSelectRightLayout,
+  onSelectCoverLayout,
 }: BookSidebarContentProps) {
   const [mounted, setMounted] = useState(false)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
@@ -191,7 +213,25 @@ export default function BookSidebarContent({
   }
 
 
-  if (activeTab === "theme") {
+  if (activeTab === "layouts") {
+    return (
+      <BookLayoutsPanel
+        spreadKind={spreadKind}
+        selectedPhotoCount={selectedPhotoCount}
+        selectedQuoteCount={selectedQuoteCount}
+        selectedCoverLayoutId={selectedCoverLayoutId}
+        selectedPhotoLayoutId={selectedLeftLayoutId}
+        selectedQuoteLayoutId={selectedRightLayoutId}
+        onPhotoCountChange={onPhotoCountChange}
+        onQuoteCountChange={onQuoteCountChange}
+        onSelectPhotoLayout={onSelectLeftLayout}
+        onSelectQuoteLayout={onSelectRightLayout}
+        onSelectCoverLayout={onSelectCoverLayout}
+      />
+    )
+  }
+
+  if (activeTab === "settings") {
     return (
       <div className="flex-1 border-r bg-muted/30 flex flex-col overflow-y-auto min-w-[200px]">
         <div className="p-4 space-y-6">
@@ -222,15 +262,7 @@ export default function BookSidebarContent({
               ))}
             </div>
           </div>
-        </div>
-      </div>
-    )
-  }
 
-  if (activeTab === "settings") {
-    return (
-      <div className="flex-1 border-r bg-muted/30 flex flex-col overflow-y-auto min-w-[200px]">
-        <div className="p-4 space-y-6">
           <div>
             <Label htmlFor="dedication" className="text-sm font-semibold mb-3 block">
               Dedication

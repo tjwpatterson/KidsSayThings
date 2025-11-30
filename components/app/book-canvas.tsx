@@ -1,138 +1,254 @@
 "use client"
 
-import dynamic from "next/dynamic"
-import { useState } from "react"
-import BookPageThumbnails from "./book-page-thumbnails"
-import BookPageOrganizer from "./book-page-organizer"
-import { Grid3x3 } from "lucide-react"
+import { useMemo } from "react"
+import { useDroppable } from "@dnd-kit/core"
 import { Button } from "@/components/ui/button"
-import type { Book, BookPage, Entry, Person, BookPhoto, PageLayout } from "@/lib/types"
-
-// BookPagePreview uses LayoutSelectorButton which uses Popover, so disable SSR
-const BookPagePreview = dynamic(() => import("./book-page-preview"), {
-  ssr: false,
-  loading: () => <div className="w-full h-full flex items-center justify-center">Loading page preview...</div>
-})
+import { ChevronLeft, ChevronRight, X } from "lucide-react"
+import type { BookPage, Entry, Person, BookPhoto, Layout, SpreadKind, PageContentItem } from "@/lib/types"
 
 interface BookCanvasProps {
-  book: Book
-  currentPage: BookPage | undefined
-  layout: PageLayout | null
+  spread?: BookPage
+  leftLayout: Layout | null
+  rightLayout: Layout | null
+  spreadKind: SpreadKind
   photos: BookPhoto[]
   quotes: Entry[]
   persons: Person[]
-  totalPages: number
-  pages: BookPage[]
-  onLayoutChange: (layout: PageLayout | null) => void
   onRemoveItem: (itemId: string) => void
-  onPageSelect: (pageNumber: number) => void
-  onAddPage: () => void
-  onPageReorder: (reorderedPages: BookPage[]) => void
+  onNavigatePrev: () => void
+  onNavigateNext: () => void
+  canNavigatePrev: boolean
+  canNavigateNext: boolean
+  pageLabel: string
 }
 
 export default function BookCanvas({
-  book,
-  currentPage,
-  layout,
+  spread,
+  leftLayout,
+  rightLayout,
+  spreadKind,
   photos,
   quotes,
   persons,
-  totalPages,
-  pages,
-  onLayoutChange,
   onRemoveItem,
-  onPageSelect,
-  onAddPage,
-  onPageReorder,
+  onNavigatePrev,
+  onNavigateNext,
+  canNavigatePrev,
+  canNavigateNext,
+  pageLabel,
 }: BookCanvasProps) {
-  const [showOrganizer, setShowOrganizer] = useState(false)
-  
-  // Determine page type labels
-  const currentPageNumber = currentPage?.page_number || 1
-  const getPageLabel = (pageNumber: number) => {
-    if (pageNumber === 1) {
-      return "Front Cover"
-    }
-    // Last page is back cover
-    if (pageNumber === totalPages) {
-      return "Back Cover"
-    }
-    // Page 2 could be title/intro page
-    if (pageNumber === 2) {
-      return "Title Page"
-    }
-    return null
-  }
-
-  const pageLabel = getPageLabel(currentPageNumber)
+  const coverLabel = spreadKind === "cover" ? "Cover Spread" : "Interior Spread"
+  const coverLayoutForRight = spreadKind === "cover" ? leftLayout : rightLayout
 
   return (
-    <>
-      <div className="flex-1 bg-gradient-to-br from-background via-muted/20 to-background flex flex-col">
-        <div className="flex-1 flex flex-col items-center justify-center p-6 min-h-full">
-          <div className="w-full max-w-6xl space-y-6">
-            {/* Page Type Label */}
-            {pageLabel && (
-              <div className="mb-4 justify-center flex">
-                <div className="px-3 py-1 bg-primary text-primary-foreground rounded text-xs font-semibold">
-                  {pageLabel}
-                </div>
-              </div>
-            )}
+    <div className="flex-1 bg-gradient-to-br from-muted via-background to-muted/30 overflow-auto">
+      <div className="w-full max-w-6xl mx-auto py-10 px-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <span className="px-3 py-1 rounded-full bg-white shadow text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            {coverLabel}
+          </span>
+          <span className="text-sm font-medium text-muted-foreground">{pageLabel}</span>
+        </div>
 
-            {/* Single Page Preview */}
-            <div className="flex justify-center">
-              <BookPagePreview
-                book={book}
-                page={currentPage}
-                layout={layout}
-                photos={photos}
-                quotes={quotes}
-                persons={persons}
-                onLayoutChange={onLayoutChange}
-                onRemoveItem={onRemoveItem}
-              />
-            </div>
-
-            {/* Page Carousel - Below Page Preview */}
-            <div className="mt-6 flex items-center justify-between">
-              <div className="flex-1">
-                <BookPageThumbnails
-                  pages={pages}
-                  currentPage={currentPageNumber}
-                  onPageSelect={onPageSelect}
-                  onAddPage={onAddPage}
-                  onPageReorder={onPageReorder}
-                  photos={photos}
-                  quotes={quotes}
-                  persons={persons}
-                  layout={layout}
-                />
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowOrganizer(true)}
-                className="ml-4 gap-2"
-              >
-                <Grid3x3 className="h-4 w-4" />
-                Organize Pages
-              </Button>
-            </div>
+        <div className="relative bg-white rounded-[32px] shadow-2xl border border-border/40 p-8">
+          <div className="flex gap-6">
+            <SpreadPage
+              side="left"
+              layout={leftLayout}
+              spread={spread}
+              photos={photos}
+              quotes={quotes}
+              persons={persons}
+              onRemoveItem={onRemoveItem}
+              label="Left Page · Photos"
+            />
+            <SpreadPage
+              side="right"
+              layout={coverLayoutForRight}
+              spread={spread}
+              photos={photos}
+              quotes={quotes}
+              persons={persons}
+              onRemoveItem={onRemoveItem}
+              label={spreadKind === "cover" ? "Front Cover" : "Right Page · Quotes"}
+            />
           </div>
         </div>
-      </div>
 
-      {/* Page Organizer Modal */}
-      {showOrganizer && (
-        <BookPageOrganizer
-          pages={pages}
-          currentPage={currentPageNumber}
-          onPageSelect={onPageSelect}
-          onPageReorder={onPageReorder}
-          onClose={() => setShowOrganizer(false)}
-        />
+        <div className="flex items-center justify-center gap-4">
+          <Button
+            variant="outline"
+            size="lg"
+            className="gap-2"
+            onClick={onNavigatePrev}
+            disabled={!canNavigatePrev}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous Spread
+          </Button>
+          <span className="text-sm font-medium text-muted-foreground">{pageLabel}</span>
+          <Button
+            variant="outline"
+            size="lg"
+            className="gap-2"
+            onClick={onNavigateNext}
+            disabled={!canNavigateNext}
+          >
+            Next Spread
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SpreadPage({
+  side,
+  layout,
+  spread,
+  photos,
+  quotes,
+  persons,
+  onRemoveItem,
+  label,
+}: {
+  side: "left" | "right"
+  layout: Layout | null
+  spread?: BookPage
+  photos: BookPhoto[]
+  quotes: Entry[]
+  persons: Person[]
+  onRemoveItem: (itemId: string) => void
+  label: string
+}) {
+  const content: PageContentItem[] =
+    side === "left" ? spread?.left_content || [] : spread?.right_content || []
+  const slots = useMemo(
+    () => layout?.slots.filter((slot) => slot.pageSide === side) || [],
+    [layout, side]
+  )
+
+  const getPersonName = (personId: string | null | undefined) => {
+    if (!personId) return null
+    return persons.find((p) => p.id === personId)?.display_name || null
+  }
+
+  return (
+    <div className="flex-1 flex flex-col gap-3">
+      <div className="flex items-center justify-between text-xs text-muted-foreground uppercase tracking-wide">
+        <span>{label}</span>
+        {layout && (
+          <span className="text-[10px] font-medium text-muted-foreground/70">
+            {slots.length} slot{slots.length === 1 ? "" : "s"}
+          </span>
+        )}
+      </div>
+      <div className="relative bg-muted/20 rounded-2xl border border-border/50 aspect-[2/3] overflow-hidden shadow-inner">
+        {!layout && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 text-sm text-muted-foreground">
+            <p>Select a layout to unlock this page.</p>
+          </div>
+        )}
+
+        {slots.map((slot) => (
+          <SpreadSlot
+            key={slot.id}
+            slot={slot}
+            content={content}
+            photos={photos}
+            quotes={quotes}
+            getPersonName={getPersonName}
+            onRemoveItem={onRemoveItem}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function SpreadSlot({
+  slot,
+  content,
+  photos,
+  quotes,
+  getPersonName,
+  onRemoveItem,
+}: {
+  slot: Layout["slots"][number]
+  content: PageContentItem[]
+  photos: BookPhoto[]
+  quotes: Entry[]
+  getPersonName: (id: string | null | undefined) => string | null
+  onRemoveItem: (itemId: string) => void
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: slot.id })
+  const existing =
+    content.find((item) => item.slotId === slot.id) ||
+    content.find((item) => item.type === slot.kind && !item.slotId)
+
+  const isPhotoSlot = slot.kind === "photo"
+  const assignedPhoto = existing && existing.type === "photo" ? photos.find((p) => p.id === existing.id) : null
+  const assignedQuote = existing && existing.type === "quote" ? quotes.find((q) => q.id === existing.id) : null
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`absolute rounded-lg overflow-hidden transition-all border ${
+        isOver ? "border-primary shadow-xl shadow-primary/30" : "border-border/60"
+      }`}
+      style={{
+        left: `${slot.xPct}%`,
+        top: `${slot.yPct}%`,
+        width: `${slot.widthPct}%`,
+        height: `${slot.heightPct}%`,
+      }}
+    >
+      {assignedPhoto && (
+        <div className="w-full h-full relative">
+          <img src={assignedPhoto.url} alt="" className="w-full h-full object-cover" />
+          <RemoveSlotButton itemId={assignedPhoto.id} onRemove={onRemoveItem} />
+        </div>
       )}
-    </>
+
+      {assignedQuote && (
+        <div className="w-full h-full relative bg-white flex flex-col items-center justify-center p-4 text-center">
+          <p className="text-sm font-serif leading-snug line-clamp-5">{assignedQuote.text}</p>
+          {assignedQuote.said_by && (
+            <p className="text-xs text-muted-foreground mt-2">— {getPersonName(assignedQuote.said_by)}</p>
+          )}
+          <RemoveSlotButton itemId={assignedQuote.id} onRemove={onRemoveItem} />
+        </div>
+      )}
+
+      {!assignedPhoto && !assignedQuote && (
+        <div className="w-full h-full flex flex-col items-center justify-center bg-muted/20 text-center px-3 text-xs text-muted-foreground gap-1">
+          <span className="font-semibold">{isPhotoSlot ? "Drop a photo" : "Drop a quote"}</span>
+          <span className="text-[10px]">Slot {slot.id.split("-").pop()}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function RemoveSlotButton({
+  itemId,
+  onRemove,
+}: {
+  itemId: string
+  onRemove: (itemId: string) => void
+}) {
+  return (
+    <Button
+      variant="secondary"
+      size="icon"
+      className="absolute top-2 right-2 h-6 w-6 rounded-full shadow"
+      onClick={(e) => {
+        e.stopPropagation()
+        onRemove(itemId)
+      }}
+    >
+      <X className="h-3 w-3" />
+    </Button>
   )
 }

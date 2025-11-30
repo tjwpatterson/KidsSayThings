@@ -1,10 +1,9 @@
 "use client"
 
-import { useState } from "react"
-import { Image, Quote, Palette, Settings } from "lucide-react"
+import { Image, Quote, LayoutGrid, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-type SidebarTab = "photos" | "quotes" | "theme" | "settings"
+type SidebarTab = "photos" | "quotes" | "layouts" | "settings"
 
 interface BookLeftSidebarProps {
   activeTab: SidebarTab
@@ -18,7 +17,7 @@ export default function BookLeftSidebar({
   const tabs: { id: SidebarTab; icon: React.ComponentType<{ className?: string }>; label: string }[] = [
     { id: "photos", icon: Image, label: "Photos" },
     { id: "quotes", icon: Quote, label: "Quotes" },
-    { id: "theme", icon: Palette, label: "Theme" },
+    { id: "layouts", icon: LayoutGrid, label: "Layouts" },
     { id: "settings", icon: Settings, label: "Settings" },
   ]
 

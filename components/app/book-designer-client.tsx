@@ -1,7 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { DndContext, DragOverlay, closestCenter, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core"
 import type {
@@ -10,11 +10,15 @@ import type {
   Person,
   BookPhoto,
   BookPage,
-  PageLayout,
   PageContentItem,
+  Layout,
+  SpreadKind,
+  LayoutSlot,
 } from "@/lib/types"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
+import { LAYOUTS_BY_ID } from "@/lib/books/layouts"
+import { autoAssignEntriesToSlots, autoAssignPhotosToSlots } from "@/lib/books/layout-helpers"
 
 // Dynamically import ALL components to prevent any SSR
 const BookToolbar = dynamic(() => import("./book-toolbar"), { ssr: false })
@@ -32,8 +36,12 @@ const BookCanvas = dynamic(() => import("./book-canvas"), {
   ssr: false,
   loading: () => <div className="flex-1 bg-muted/10 flex items-center justify-center">Loading canvas...</div>
 })
+const BookManagePages = dynamic(() => import("./book-manage-pages"), {
+  ssr: false,
+  loading: () => <div className="flex-1 bg-muted/10 flex items-center justify-center">Loading pages...</div>
+})
 
-type SidebarTab = "photos" | "quotes" | "theme" | "settings"
+type SidebarTab = "photos" | "quotes" | "layouts" | "settings"
 
 interface BookDesignerClientProps {
   book: Book
@@ -56,18 +64,21 @@ export default function BookDesignerClient({
 
   // State management
   const [book, setBook] = useState<Book>(initialBook)
-  const [currentPage, setCurrentPage] = useState(1)
   const [pages, setPages] = useState<BookPage[]>(initialPages || [])
+  const [currentSpreadIndex, setCurrentSpreadIndex] = useState(0)
   const [allPhotos, setAllPhotos] = useState<BookPhoto[]>(initialPhotos || [])
   const [allQuotes, setAllQuotes] = useState<Entry[]>(initialEntries || [])
-  const [layout, setLayout] = useState<PageLayout | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null)
   const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab>("photos")
   const [selectedPersonFilter, setSelectedPersonFilter] = useState<string>("all")
+  const [selectedPhotoCount, setSelectedPhotoCount] = useState(1)
+  const [selectedQuoteCount, setSelectedQuoteCount] = useState(1)
+  const [viewMode, setViewMode] = useState<"edit" | "manage">("edit")
   const [zoom, setZoom] = useState(100)
   const [clientReady, setClientReady] = useState(false)
+  const pendingSpreadRef = useRef<BookPage | null>(null)
 
   // Set clientReady after mount - must be called unconditionally
   useEffect(() => {
@@ -91,14 +102,16 @@ export default function BookDesignerClient({
     })
   )
 
-  // Initialize current page when pages change
   useEffect(() => {
-    if (pages.length > 0 && currentPage > pages.length) {
-      setCurrentPage(pages.length)
-    } else if (pages.length === 0) {
-      setCurrentPage(1)
+    if (pages.length === 0) {
+      setCurrentSpreadIndex(0)
+      return
     }
-  }, [pages.length, currentPage])
+
+    if (currentSpreadIndex >= pages.length) {
+      setCurrentSpreadIndex(Math.max(pages.length - 1, 0))
+    }
+  }, [pages.length, currentSpreadIndex])
 
   // Keyboard navigation
   useEffect(() => {
@@ -112,21 +125,21 @@ export default function BookDesignerClient({
 
       if (e.key === "ArrowLeft" && e.ctrlKey) {
         e.preventDefault()
-        if (currentPage > 1) {
-          setCurrentPage(currentPage - 1)
+        if (currentSpreadIndex > 0) {
+          setCurrentSpreadIndex((prev) => Math.max(prev - 1, 0))
         }
       } else if (e.key === "ArrowRight" && e.ctrlKey) {
         e.preventDefault()
-        const maxPage = Math.max(pages.length, currentPage, 1)
-        if (currentPage < maxPage) {
-          setCurrentPage(currentPage + 1)
+        const maxIndex = Math.max(pages.length - 1, 0)
+        if (currentSpreadIndex < maxIndex) {
+          setCurrentSpreadIndex((prev) => Math.min(prev + 1, maxIndex))
         }
       }
     }
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [currentPage, pages.length])
+  }, [currentSpreadIndex, pages.length])
 
   // Get used item IDs from all pages
   const getUsedItemIds = () => {
@@ -134,7 +147,11 @@ export default function BookDesignerClient({
     const usedQuoteIds = new Set<string>()
 
     pages.forEach((page) => {
-      page.left_content?.forEach((item) => {
+      ;(page.left_content || []).forEach((item) => {
+        if (item.type === "photo") usedPhotoIds.add(item.id)
+        else usedQuoteIds.add(item.id)
+      })
+      ;(page.right_content || []).forEach((item) => {
         if (item.type === "photo") usedPhotoIds.add(item.id)
         else usedQuoteIds.add(item.id)
       })
@@ -148,19 +165,197 @@ export default function BookDesignerClient({
   const photos = allPhotos.filter((p) => !usedPhotoIds.has(p.id))
   const quotes = allQuotes.filter((q) => !usedQuoteIds.has(q.id))
 
-  // Get current page data
-  const currentPageData = pages.find((p) => p.page_number === currentPage)
+  const buildPhotoPool = useCallback(
+    (spread?: BookPage) => {
+      if (!spread) return photos
+      const currentAssignments =
+        spread.left_content
+          ?.filter((item) => item.type === "photo")
+          .map((item) => allPhotos.find((photo) => photo.id === item.id))
+          .filter((item): item is BookPhoto => Boolean(item)) || []
 
-  // Initialize current page layout
+      const merged = [...currentAssignments, ...photos]
+      const seen = new Set<string>()
+      return merged.filter((item) => {
+        if (seen.has(item.id)) return false
+        seen.add(item.id)
+        return true
+      })
+    },
+    [allPhotos, photos]
+  )
+
+  const buildQuotePool = useCallback(
+    (spread?: BookPage) => {
+      if (!spread) return quotes
+      const currentAssignments =
+        spread.right_content
+          ?.filter((item) => item.type === "quote")
+          .map((item) => allQuotes.find((quote) => quote.id === item.id))
+          .filter((item): item is Entry => Boolean(item)) || []
+
+      const merged = [...currentAssignments, ...quotes]
+      const seen = new Set<string>()
+      return merged.filter((item) => {
+        if (seen.has(item.id)) return false
+        seen.add(item.id)
+        return true
+      })
+    },
+    [allQuotes, quotes]
+  )
+
+  const currentSpread = pages[currentSpreadIndex]
+  const spreadKind: SpreadKind =
+    currentSpreadIndex === 0 || currentSpreadIndex === Math.max(pages.length - 1, 0) ? "cover" : "interior"
+
+  const leftLayout: Layout | null =
+    currentSpread?.left_layout && LAYOUTS_BY_ID[currentSpread.left_layout]
+      ? LAYOUTS_BY_ID[currentSpread.left_layout]
+      : null
+
+  const rightLayout: Layout | null =
+    currentSpread?.right_layout && LAYOUTS_BY_ID[currentSpread.right_layout]
+      ? LAYOUTS_BY_ID[currentSpread.right_layout]
+      : null
+
+  const selectedPhotoLayoutId = spreadKind === "interior" ? currentSpread?.left_layout ?? null : null
+  const selectedQuoteLayoutId = spreadKind === "interior" ? currentSpread?.right_layout ?? null : null
+  const selectedCoverLayoutId = spreadKind === "cover" ? currentSpread?.left_layout ?? null : null
   useEffect(() => {
-    if (currentPageData) {
-      setLayout(currentPageData.left_layout)
-    } else {
-      setLayout(null)
+    if (spreadKind === "interior") {
+      if (leftLayout?.photoCount) {
+        setSelectedPhotoCount(leftLayout.photoCount)
+      }
+      if (rightLayout?.quoteCount) {
+        setSelectedQuoteCount(rightLayout.quoteCount)
+      }
+    } else if (spreadKind === "cover" && leftLayout?.photoCount) {
+      setSelectedPhotoCount(leftLayout.photoCount)
     }
-  }, [currentPageData, currentPage])
+  }, [spreadKind, leftLayout?.photoCount, rightLayout?.quoteCount])
+  const spreadPageLabel = useMemo(() => {
+    if (!currentSpread) return "No pages yet"
+    if (spreadKind === "cover") {
+      if (currentSpreadIndex === 0) return "Front Cover / Inside Cover"
+      if (currentSpreadIndex === Math.max(pages.length - 1, 0)) return "Back Cover"
+      return "Cover Spread"
+    }
+    const spreadNumber = currentSpread.page_number || currentSpreadIndex + 1
+    const leftNumber = spreadNumber * 2 - 1
+    const rightNumber = leftNumber + 1
+    return `Pages ${leftNumber}–${rightNumber}`
+  }, [currentSpread, currentSpreadIndex, pages.length, spreadKind])
+  const getSpreadLabel = useCallback(
+    (spread: BookPage, index: number) => {
+      const kind: SpreadKind = index === 0 || index === Math.max(pages.length - 1, 0) ? "cover" : "interior"
+      if (kind === "cover") {
+        if (index === 0) return "Front Cover"
+        if (index === Math.max(pages.length - 1, 0)) return "Back Cover"
+        return "Cover Spread"
+      }
+      const spreadNumber = spread.page_number || index + 1
+      const leftNumber = spreadNumber * 2 - 1
+      const rightNumber = leftNumber + 1
+      return `Pages ${leftNumber}–${rightNumber}`
+    },
+    [pages.length]
+  )
+
+  const slotMap = useMemo(() => {
+    const map = new Map<string, LayoutSlot>()
+    ;(leftLayout?.slots || []).forEach((slot) => map.set(slot.id, slot))
+    ;(rightLayout?.slots || []).forEach((slot) => map.set(slot.id, slot))
+    return map
+  }, [leftLayout, rightLayout, currentSpread?.id])
+  const maxSpreadIndex = Math.max(pages.length - 1, 0)
+  const canNavigatePrev = currentSpreadIndex > 0
+  const canNavigateNext = currentSpreadIndex < maxSpreadIndex
 
   // Update book properties
+  const persistSpread = useCallback(
+    async (spread: BookPage) => {
+      setSaving(true)
+      try {
+        const payload = {
+          page_number: spread.page_number,
+          left_layout: spread.left_layout,
+          right_layout: spread.right_layout,
+          left_content: spread.left_content || [],
+          right_content: spread.right_content || [],
+        }
+
+        const res = await fetch(`/api/books/${book.id}/pages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+
+        if (!res.ok) {
+          throw new Error("Failed to save spread")
+        }
+      } catch (error: any) {
+        toast({
+          title: "Save failed",
+          description: error.message || "Failed to save changes",
+          variant: "destructive",
+        })
+      } finally {
+        pendingSpreadRef.current = null
+        setSaving(false)
+      }
+    },
+    [book.id, toast]
+  )
+
+  const scheduleSave = useCallback(
+    (spread: BookPage) => {
+      pendingSpreadRef.current = spread
+      if (saveTimeout) {
+        clearTimeout(saveTimeout)
+      }
+
+      const timeout = setTimeout(() => {
+        if (pendingSpreadRef.current) {
+          persistSpread(pendingSpreadRef.current)
+        }
+      }, 1200)
+
+      setSaveTimeout(timeout)
+    },
+    [persistSpread, saveTimeout]
+  )
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeout) {
+        clearTimeout(saveTimeout)
+      }
+    }
+  }, [saveTimeout])
+
+  const updateCurrentSpread = useCallback(
+    (mutator: (spread: BookPage) => BookPage) => {
+      setPages((prev) => {
+        if (!prev[currentSpreadIndex]) return prev
+
+        const next = [...prev]
+        const base = next[currentSpreadIndex]
+        const draft: BookPage = {
+          ...base,
+          left_content: [...(base.left_content || [])],
+          right_content: [...(base.right_content || [])],
+        }
+
+        const updated = mutator(draft)
+        next[currentSpreadIndex] = updated
+        scheduleSave(updated)
+        return next
+      })
+    },
+    [currentSpreadIndex, scheduleSave]
+  )
+
   const handleBookUpdate = useCallback(
     async (updates: Partial<Book>) => {
       setSaving(true)
@@ -188,121 +383,77 @@ export default function BookDesignerClient({
     [book.id, supabase, toast]
   )
 
-  // Auto-save page function
-  const savePage = useCallback(async (pageDataOverride?: { content?: PageContentItem[] }) => {
-    const latestPageData = pages.find((p) => p.page_number === currentPage)
+  // Debounced auto-save will be driven by updateCurrentSpread -> scheduleSave
 
-    if (!latestPageData && !layout) {
-      return
-    }
+  const handleSelectPhotoLayout = useCallback(
+    (layoutId: string) => {
+      const layoutDef = LAYOUTS_BY_ID[layoutId]
+      if (!layoutDef) return
+      setSelectedPhotoCount(layoutDef.photoCount || 1)
 
-    setSaving(true)
-    try {
-      const pageData = {
-        page_number: currentPage,
-        left_layout: layout,
-        right_layout: null,
-        left_content: pageDataOverride?.content ?? latestPageData?.left_content ?? [],
-        right_content: [],
-      }
-
-      const res = await fetch(`/api/books/${book.id}/pages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(pageData),
-      })
-
-      if (!res.ok) {
-        const errorText = await res.text()
-        throw new Error("Failed to save page")
-      }
-
-      const savedPage = await res.json()
-
-      setPages((prev) => {
-        const existingIndex = prev.findIndex((p) => p.page_number === currentPage)
-        if (existingIndex >= 0) {
-          const updated = [...prev]
-          updated[existingIndex] = {
-            ...savedPage,
-            left_layout: pageData.left_layout,
-            right_layout: null,
-            left_content: pageData.left_content,
-            right_content: [],
-          }
-          return updated
-        }
-        return [...prev, {
-          ...savedPage,
-          left_layout: pageData.left_layout,
-          right_layout: null,
-          left_content: pageData.left_content,
-          right_content: [],
-        }]
-      })
-    } catch (error: any) {
-      toast({
-        title: "Save failed",
-        description: error.message || "Failed to save page changes",
-        variant: "destructive",
-      })
-    } finally {
-      setSaving(false)
-    }
-  }, [currentPage, layout, pages, book.id, toast])
-
-  // Debounced auto-save
-  useEffect(() => {
-    if (saveTimeout) {
-      clearTimeout(saveTimeout)
-    }
-
-    const timeout = setTimeout(() => {
-      savePage()
-    }, 2000)
-
-    setSaveTimeout(timeout)
-
-    return () => {
-      if (timeout) {
-        clearTimeout(timeout)
-      }
-    }
-  }, [layout, currentPage, savePage, saveTimeout, activeId])
-
-  // Handle layout change with immediate save
-  const handleLayoutChange = useCallback(async (newLayout: PageLayout | null) => {
-    try {
-      setLayout(newLayout)
-      const latestPageData = pages.find((p) => p.page_number === currentPage)
-      if (latestPageData || newLayout) {
-        const pageData = {
-          page_number: currentPage,
-          left_layout: newLayout,
-          right_layout: null,
-          left_content: latestPageData?.left_content || [],
-          right_content: [],
-        }
-
-        const res = await fetch(`/api/books/${book.id}/pages`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(pageData),
+      updateCurrentSpread((spread) => {
+        const nextContent = autoAssignPhotosToSlots({
+          layout: layoutDef,
+          existingContent: spread.left_content,
+          availablePhotos: buildPhotoPool(spread),
         })
-
-        if (!res.ok) {
-          throw new Error("Failed to save layout")
+        return {
+          ...spread,
+          left_layout: layoutId,
+          left_content: nextContent,
         }
-      }
-    } catch (error) {
-      console.error("Error saving layout:", error)
-      toast({
-        title: "Error",
-        description: "Failed to save layout change",
-        variant: "destructive",
       })
-    }
-  }, [currentPage, pages, book.id, toast])
+    },
+    [updateCurrentSpread, buildPhotoPool]
+  )
+
+  const handleSelectQuoteLayout = useCallback(
+    (layoutId: string) => {
+      const layoutDef = LAYOUTS_BY_ID[layoutId]
+      if (!layoutDef) return
+      setSelectedQuoteCount(layoutDef.quoteCount || 1)
+
+      updateCurrentSpread((spread) => {
+        const nextContent = autoAssignEntriesToSlots({
+          layout: layoutDef,
+          existingContent: spread.right_content,
+          availableEntries: buildQuotePool(spread),
+        })
+        return {
+          ...spread,
+          right_layout: layoutId,
+          right_content: nextContent,
+        }
+      })
+    },
+    [updateCurrentSpread, buildQuotePool]
+  )
+
+  const handleSelectCoverLayout = useCallback(
+    (layoutId: string) => {
+      const layoutDef = LAYOUTS_BY_ID[layoutId]
+      if (!layoutDef) return
+      if (layoutDef.photoCount) {
+        setSelectedPhotoCount(layoutDef.photoCount)
+      }
+
+      updateCurrentSpread((spread) => {
+        const nextContent = autoAssignPhotosToSlots({
+          layout: layoutDef,
+          existingContent: spread.left_content,
+          availablePhotos: buildPhotoPool(spread),
+        })
+        return {
+          ...spread,
+          left_layout: layoutId,
+          left_content: nextContent,
+          right_layout: null,
+          right_content: [],
+        }
+      })
+    },
+    [updateCurrentSpread, buildPhotoPool]
+  )
 
   // Auto-generate book
   const handleAutoGenerate = useCallback(async () => {
@@ -363,122 +514,51 @@ export default function BookDesignerClient({
       return
     }
 
-    const isTop = overId === "page-top"
-    const isBottom = overId === "page-bottom"
-    const isMain = overId === "page-main"
-
-    if (!isMain && !isTop && !isBottom) return
-
-    const targetLayout = layout
-
-    if (isPhoto) {
-      if (targetLayout === "A") {
-      } else if (targetLayout === "B") {
-        if (!isTop) {
-          toast({
-            title: "Invalid placement",
-            description: "Photo must be placed in the top area (2/3) of Layout B",
-            variant: "destructive",
-          })
-          return
-        }
-      } else {
-        toast({
-          title: "Invalid placement",
-          description: "Photo cannot be placed here with current layout",
-          variant: "destructive",
-        })
-        return
-      }
-    } else if (isQuote) {
-      if (targetLayout === "A") {
-      } else if (targetLayout === "B") {
-        if (!isBottom) {
-          toast({
-            title: "Invalid placement",
-            description: "Quote must be placed in the bottom area (1/3) of Layout B",
-            variant: "destructive",
-          })
-          return
-        }
-      } else {
-        toast({
-          title: "Invalid placement",
-          description: "Quote cannot be placed here with current layout",
-          variant: "destructive",
-        })
-        return
-      }
+    const slot = slotMap.get(overId)
+    if (!slot) {
+      return
     }
 
-    const contentItem: PageContentItem = {
+    if ((slot.kind === "photo" && !isPhoto) || (slot.kind === "quote" && !isQuote)) {
+      toast({
+        title: "Wrong slot",
+        description: `Drop a ${slot.kind} into this slot`,
+        variant: "destructive",
+      })
+      return
+    }
+
+    const newItem: PageContentItem = {
       id: activeId,
-      type: isPhoto ? "photo" : "quote",
+      type: slot.kind,
+      pageSide: slot.pageSide,
+      slotId: slot.id,
+      position: {
+        x: slot.xPct,
+        y: slot.yPct,
+        width: slot.widthPct,
+        height: slot.heightPct,
+      },
     }
 
-    let updatedContent: PageContentItem[] = []
+    updateCurrentSpread((spread) => {
+      let leftContent = (spread.left_content || []).filter((item) => item.id !== newItem.id)
+      let rightContent = (spread.right_content || []).filter((item) => item.id !== newItem.id)
 
-    setPages((prev) => {
-      const existing = prev.find((p) => p.page_number === currentPage)
-      if (existing) {
-        const updated = { ...existing }
-        const content = updated.left_content || []
-
-        if (targetLayout === "A") {
-          updated.left_content = [contentItem]
-          updatedContent = [contentItem]
-        } else if (targetLayout === "B") {
-          const newContent = [...content]
-
-          if (isPhoto && isTop) {
-            const existingPhotoIndex = newContent.findIndex((c) => c.type === "photo")
-            if (existingPhotoIndex >= 0) {
-              newContent[existingPhotoIndex] = contentItem
-            } else {
-              newContent.unshift(contentItem)
-            }
-          } else if (isQuote && isBottom) {
-            const existingQuoteIndex = newContent.findIndex((c) => c.type === "quote")
-            if (existingQuoteIndex >= 0) {
-              newContent[existingQuoteIndex] = contentItem
-            } else {
-              newContent.push(contentItem)
-            }
-          } else {
-            newContent.push(contentItem)
-          }
-          updated.left_content = newContent
-          updatedContent = newContent
-        }
-
-        return prev.map((p) => (p.page_number === currentPage ? updated : p))
+      if (slot.pageSide === "left") {
+        leftContent = leftContent.filter((item) => item.slotId !== slot.id)
+        leftContent.push(newItem)
       } else {
-        const newPage: BookPage = {
-          id: "",
-          book_id: book.id,
-          page_number: currentPage,
-          left_layout: layout,
-          right_layout: null,
-          left_content: [contentItem],
-          right_content: [],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }
-        updatedContent = newPage.left_content || []
-        return [...prev, newPage]
+        rightContent = rightContent.filter((item) => item.slotId !== slot.id)
+        rightContent.push(newItem)
+      }
+
+      return {
+        ...spread,
+        left_content: leftContent,
+        right_content: rightContent,
       }
     })
-
-    if (saveTimeout) {
-      clearTimeout(saveTimeout)
-      setSaveTimeout(null)
-    }
-
-    setTimeout(() => {
-      savePage({
-        content: updatedContent,
-      })
-    }, 50)
   }
 
   // Photo upload/refresh handler
@@ -507,74 +587,80 @@ export default function BookDesignerClient({
     }
   }
 
-  // Remove item from page
-  const handleRemoveItem = (itemId: string) => {
-    if (saveTimeout) {
-      clearTimeout(saveTimeout)
-      setSaveTimeout(null)
+  const handleAddSpread = useCallback(async () => {
+    const defaultPhotoLayout = LAYOUTS_BY_ID["photo-1-full-bleed"]
+    const defaultQuoteLayout = LAYOUTS_BY_ID["quote-1-centered"]
+    const nextPageNumber = (pages[pages.length - 1]?.page_number || pages.length) + 1
+
+    const photoSlots = defaultPhotoLayout
+      ? autoAssignPhotosToSlots({
+          layout: defaultPhotoLayout,
+          existingContent: [],
+          availablePhotos: photos,
+        })
+      : []
+
+    const quoteSlots = defaultQuoteLayout
+      ? autoAssignEntriesToSlots({
+          layout: defaultQuoteLayout,
+          existingContent: [],
+          availableEntries: quotes,
+        })
+      : []
+
+    const payload = {
+      book_id: book.id,
+      page_number: nextPageNumber,
+      left_layout: defaultPhotoLayout?.id ?? null,
+      right_layout: defaultQuoteLayout?.id ?? null,
+      left_content: photoSlots,
+      right_content: quoteSlots,
     }
-
-    setPages((prev) => {
-      const existing = prev.find((p) => p.page_number === currentPage)
-      if (!existing) return prev
-
-      const updated = { ...existing }
-      updated.left_content = (updated.left_content || []).filter(
-        (item) => item.id !== itemId
-      )
-
-      const newPages = prev.map((p) => (p.page_number === currentPage ? updated : p))
-
-      savePage({
-        content: updated.left_content,
-      }).catch((error) => {
-        console.error("Failed to save after removing item:", error)
-      })
-
-      return newPages
-    })
-  }
-
-  // Handle page reordering
-  const handlePageReorder = useCallback(async (reorderedPages: BookPage[]) => {
-    setPages(reorderedPages)
 
     try {
-      const tempOffset = 10000
+      const res = await fetch(`/api/books/${book.id}/pages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
 
-      for (const page of reorderedPages) {
-        await fetch(`/api/books/${book.id}/pages`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            page_id: page.id,
-            page_number: tempOffset + page.page_number,
-          }),
-        })
+      if (!res.ok) {
+        throw new Error("Failed to add pages")
       }
 
-      for (let i = 0; i < reorderedPages.length; i++) {
-        await fetch(`/api/books/${book.id}/pages`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            page_id: reorderedPages[i].id,
-            page_number: i + 1,
-          }),
-        })
-      }
-
-      toast({ title: "Pages reordered", description: "Page order saved successfully." })
+      const saved = await res.json()
+      setPages((prev) => [
+        ...prev,
+        {
+          ...saved,
+          left_content: payload.left_content,
+          right_content: payload.right_content,
+        },
+      ])
+      setCurrentSpreadIndex(pages.length)
+      setViewMode("edit")
     } catch (error: any) {
-      console.error("Failed to reorder pages:", error)
+      console.error("Add spread failed", error)
       toast({
         title: "Error",
-        description: error.message || "Failed to reorder pages",
+        description: error.message || "Could not add pages",
         variant: "destructive",
       })
-      setPages(prev => [...prev].sort((a, b) => a.page_number - b.page_number))
     }
-  }, [book.id, toast])
+  }, [book.id, pages, photos, quotes, toast])
+
+  // Remove item from page
+  const handleRemoveItem = (itemId: string) => {
+    updateCurrentSpread((spread) => {
+      const leftContent = (spread.left_content || []).filter((item) => item.id !== itemId)
+      const rightContent = (spread.right_content || []).filter((item) => item.id !== itemId)
+      return {
+        ...spread,
+        left_content: leftContent,
+        right_content: rightContent,
+      }
+    })
+  }
 
   // Return null on server AND until client is ready to prevent any hydration mismatch
   if (typeof window === "undefined" || !clientReady) {
@@ -594,6 +680,8 @@ export default function BookDesignerClient({
           book={book}
           onUpdate={handleBookUpdate}
           onAutoGenerate={handleAutoGenerate}
+          onToggleManageView={() => setViewMode((prev) => (prev === "manage" ? "edit" : "manage"))}
+          isManageView={viewMode === "manage"}
           saving={saving}
           zoom={zoom}
           onZoomChange={setZoom}
@@ -620,66 +708,58 @@ export default function BookDesignerClient({
               onPersonFilterChange={setSelectedPersonFilter}
               onPhotosUploaded={handlePhotosUploaded}
               onBookUpdate={handleBookUpdate}
+              spreadKind={spreadKind}
+              selectedPhotoCount={selectedPhotoCount}
+              selectedQuoteCount={selectedQuoteCount}
+              selectedLeftLayoutId={selectedPhotoLayoutId}
+              selectedRightLayoutId={selectedQuoteLayoutId}
+              selectedCoverLayoutId={selectedCoverLayoutId}
+              onPhotoCountChange={setSelectedPhotoCount}
+              onQuoteCountChange={setSelectedQuoteCount}
+              onSelectLeftLayout={handleSelectPhotoLayout}
+              onSelectRightLayout={handleSelectQuoteLayout}
+              onSelectCoverLayout={handleSelectCoverLayout}
             />
           </ResizableSidebar>
 
           {/* Center Canvas */}
           <div className="flex-1 overflow-auto relative" style={{ zoom: `${zoom}%` }}>
-            <BookCanvas
-              book={book}
-              currentPage={currentPageData}
-              layout={layout}
-              photos={allPhotos}
-              quotes={allQuotes}
-              persons={initialPersons}
-              totalPages={Math.max(pages.length, currentPage, 1)}
-              pages={pages}
-              onLayoutChange={handleLayoutChange}
-              onRemoveItem={handleRemoveItem}
-              onPageSelect={setCurrentPage}
-              onAddPage={async () => {
-                const newPageNumber = Math.max(pages.length, currentPage, 1) + 1
-                try {
-                  const pageData = {
-                    book_id: book.id,
-                    page_number: newPageNumber,
-                    left_layout: null,
-                    right_layout: null,
-                    left_content: [],
-                    right_content: [],
+            {viewMode === "edit" ? (
+              <BookCanvas
+                spread={currentSpread}
+                leftLayout={leftLayout}
+                rightLayout={rightLayout}
+                spreadKind={spreadKind}
+                photos={allPhotos}
+                quotes={allQuotes}
+                persons={initialPersons}
+                onRemoveItem={handleRemoveItem}
+                onNavigatePrev={() => {
+                  if (canNavigatePrev) {
+                    setCurrentSpreadIndex((prev) => Math.max(prev - 1, 0))
                   }
-
-                  const res = await fetch(`/api/books/${book.id}/pages`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(pageData),
-                  })
-
-                  if (res.ok) {
-                    const newPage = await res.json()
-                    setPages((prev) => [
-                      ...prev,
-                      {
-                        ...newPage,
-                        left_content: (newPage.left_content as any) || [],
-                        right_content: [],
-                      },
-                    ])
-                    setCurrentPage(newPageNumber)
-                  } else {
-                    throw new Error("Failed to create page")
+                }}
+                onNavigateNext={() => {
+                  if (canNavigateNext) {
+                    setCurrentSpreadIndex((prev) => Math.min(prev + 1, maxSpreadIndex))
                   }
-                } catch (error) {
-                  console.error("Failed to create new page:", error)
-                  toast({
-                    title: "Error",
-                    description: "Failed to create new page",
-                    variant: "destructive",
-                  })
-                }
-              }}
-              onPageReorder={handlePageReorder}
-            />
+                }}
+                canNavigatePrev={canNavigatePrev}
+                canNavigateNext={canNavigateNext}
+                pageLabel={spreadPageLabel}
+              />
+            ) : (
+              <BookManagePages
+                spreads={pages}
+                currentIndex={currentSpreadIndex}
+                onSelectSpread={(index) => {
+                  setCurrentSpreadIndex(index)
+                  setViewMode("edit")
+                }}
+                onAddSpread={() => handleAddSpread()}
+                getLabel={getSpreadLabel}
+              />
+            )}
           </div>
         </div>
       </div>

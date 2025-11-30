@@ -11,6 +11,8 @@ interface BookToolbarProps {
   book: Book
   onUpdate: (updates: Partial<Book>) => Promise<void>
   onAutoGenerate: () => Promise<void>
+  onToggleManageView: () => void
+  isManageView: boolean
   saving?: boolean
   zoom?: number
   onZoomChange?: (zoom: number) => void
@@ -20,6 +22,8 @@ export default function BookToolbar({
   book,
   onUpdate,
   onAutoGenerate,
+  onToggleManageView,
+  isManageView,
   saving = false,
   zoom = 100,
   onZoomChange,
@@ -62,6 +66,13 @@ export default function BookToolbar({
     toast({
       title: "Share",
       description: "Share functionality coming soon!",
+    })
+  }
+
+  const handlePreview = () => {
+    toast({
+      title: "Preview",
+      description: "Preview is coming soon.",
     })
   }
 
@@ -145,6 +156,25 @@ export default function BookToolbar({
           </div>
         )}
 
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-2"
+            onClick={handlePreview}
+          >
+            Preview
+          </Button>
+          <Button
+            variant={isManageView ? "default" : "outline"}
+            size="sm"
+            className="gap-2"
+            onClick={onToggleManageView}
+          >
+            Manage Pages
+          </Button>
+        </div>
+
         {saving ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
             <Cloud className="h-4 w-4" />
@@ -156,24 +186,26 @@ export default function BookToolbar({
             <span className="font-medium">Saved</span>
           </div>
         )}
-        <Button
-          onClick={onAutoGenerate}
-          variant="outline"
-          size="sm"
-          className="gap-2 hover:bg-muted transition-colors"
-        >
-          <Sparkles className="h-4 w-4" />
-          Auto-Generate
-        </Button>
-        <Button 
-          onClick={handleShare} 
-          variant="default" 
-          size="sm" 
-          className="gap-2 hover:bg-primary/90 transition-colors"
-        >
-          <Share2 className="h-4 w-4" />
-          Share
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={onAutoGenerate}
+            variant="outline"
+            size="sm"
+            className="gap-2 hover:bg-muted transition-colors"
+          >
+            <Sparkles className="h-4 w-4" />
+            Auto-Generate
+          </Button>
+          <Button 
+            onClick={handleShare} 
+            variant="default" 
+            size="sm" 
+            className="gap-2 hover:bg-primary/90 transition-colors"
+          >
+            <Share2 className="h-4 w-4" />
+            Share
+          </Button>
+        </div>
       </div>
     </div>
   )

@@ -11,33 +11,24 @@ import {
 } from "@/lib/books/layouts"
 
 const PHOTO_OPTIONS = [1, 2, 3, 4]
-const QUOTE_OPTIONS = [1, 2, 3]
 
 interface LayoutsPanelProps {
   spreadKind: SpreadKind
   selectedPhotoCount: number
-  selectedQuoteCount: number
   selectedCoverLayoutId: string | null
   selectedPhotoLayoutId: string | null
-  selectedQuoteLayoutId: string | null
   onPhotoCountChange: (count: number) => void
-  onQuoteCountChange: (count: number) => void
   onSelectPhotoLayout: (layoutId: string) => void
-  onSelectQuoteLayout: (layoutId: string) => void
   onSelectCoverLayout: (layoutId: string) => void
 }
 
 export default function BookLayoutsPanel({
   spreadKind,
   selectedPhotoCount,
-  selectedQuoteCount,
   selectedCoverLayoutId,
   selectedPhotoLayoutId,
-  selectedQuoteLayoutId,
   onPhotoCountChange,
-  onQuoteCountChange,
   onSelectPhotoLayout,
-  onSelectQuoteLayout,
   onSelectCoverLayout,
 }: LayoutsPanelProps) {
   if (spreadKind === "cover") {
@@ -63,7 +54,6 @@ export default function BookLayoutsPanel({
   }
 
   const photoLayouts = getPhotoLayouts(selectedPhotoCount)
-  const quoteLayouts = getQuoteLayouts(selectedQuoteCount)
 
   return (
     <div className="flex-1 border-r border-border/50 bg-gradient-to-b from-background to-muted/20 flex flex-col overflow-hidden min-w-[200px]">
@@ -88,55 +78,17 @@ export default function BookLayoutsPanel({
           </div>
         </div>
 
-        <div>
-          <h3 className="font-semibold text-sm mb-3">Right Page · Quotes</h3>
-          <div className="flex flex-wrap gap-2">
-            {QUOTE_OPTIONS.map((count) => (
-              <Button
-                key={count}
-                size="sm"
-                variant={count === selectedQuoteCount ? "default" : "outline"}
-                className={cn(
-                  "h-7 text-xs px-3",
-                  count === selectedQuoteCount && "bg-primary text-primary-foreground"
-                )}
-                onClick={() => onQuoteCountChange(count)}
-              >
-                {count} {count === 1 ? "quote" : "quotes"}
-              </Button>
-            ))}
-          </div>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          Choose a photo-forward layout for the left page. We’ll auto-pair the right page with a matching quote layout.
+        </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-8">
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Photo layouts</p>
-            <span className="text-[11px] text-muted-foreground">
-              {photoLayouts.length} option{photoLayouts.length === 1 ? "" : "s"}
-            </span>
-          </div>
-          <LayoutGrid
-            layouts={photoLayouts}
-            selectedId={selectedPhotoLayoutId}
-            onSelect={onSelectPhotoLayout}
-          />
-        </div>
-
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Quote layouts</p>
-            <span className="text-[11px] text-muted-foreground">
-              {quoteLayouts.length} option{quoteLayouts.length === 1 ? "" : "s"}
-            </span>
-          </div>
-          <LayoutGrid
-            layouts={quoteLayouts}
-            selectedId={selectedQuoteLayoutId}
-            onSelect={onSelectQuoteLayout}
-          />
-        </div>
+      <div className="flex-1 overflow-y-auto p-4">
+        <LayoutGrid
+          layouts={photoLayouts}
+          selectedId={selectedPhotoLayoutId}
+          onSelect={onSelectPhotoLayout}
+        />
       </div>
     </div>
   )

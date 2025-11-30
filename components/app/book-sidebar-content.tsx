@@ -74,14 +74,10 @@ interface BookSidebarContentProps {
   onBookUpdate: (updates: Partial<Book>) => Promise<void>
   spreadKind: SpreadKind
   selectedPhotoCount: number
-  selectedQuoteCount: number
   selectedLeftLayoutId: string | null
-  selectedRightLayoutId: string | null
   selectedCoverLayoutId: string | null
   onPhotoCountChange: (count: number) => void
-  onQuoteCountChange: (count: number) => void
   onSelectLeftLayout: (layoutId: string) => void
-  onSelectRightLayout: (layoutId: string) => void
   onSelectCoverLayout: (layoutId: string) => void
 }
 
@@ -98,14 +94,10 @@ export default function BookSidebarContent({
   onBookUpdate,
   spreadKind,
   selectedPhotoCount,
-  selectedQuoteCount,
   selectedLeftLayoutId,
-  selectedRightLayoutId,
   selectedCoverLayoutId,
   onPhotoCountChange,
-  onQuoteCountChange,
   onSelectLeftLayout,
-  onSelectRightLayout,
   onSelectCoverLayout,
 }: BookSidebarContentProps) {
   const [mounted, setMounted] = useState(false)
@@ -218,14 +210,10 @@ export default function BookSidebarContent({
       <BookLayoutsPanel
         spreadKind={spreadKind}
         selectedPhotoCount={selectedPhotoCount}
-        selectedQuoteCount={selectedQuoteCount}
         selectedCoverLayoutId={selectedCoverLayoutId}
         selectedPhotoLayoutId={selectedLeftLayoutId}
-        selectedQuoteLayoutId={selectedRightLayoutId}
         onPhotoCountChange={onPhotoCountChange}
-        onQuoteCountChange={onQuoteCountChange}
         onSelectPhotoLayout={onSelectLeftLayout}
-        onSelectQuoteLayout={onSelectRightLayout}
         onSelectCoverLayout={onSelectCoverLayout}
       />
     )

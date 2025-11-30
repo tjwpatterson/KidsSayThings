@@ -5,11 +5,20 @@ export const COVER_LAYOUTS: Layout[] = [
     id: "cover-wrap-photo",
     name: "Wrap Photo",
     category: "cover",
-    photoCount: 1,
+    photoCount: 2,
     quoteCount: 0,
     slots: [
       {
         id: "cover-photo-1",
+        kind: "photo",
+        pageSide: "left",
+        xPct: 0,
+        yPct: 0,
+        widthPct: 100,
+        heightPct: 100,
+      },
+      {
+        id: "cover-photo-2",
         kind: "photo",
         pageSide: "right",
         xPct: 0,
@@ -29,6 +38,15 @@ export const COVER_LAYOUTS: Layout[] = [
       {
         id: "cover-photo-1",
         kind: "photo",
+        pageSide: "left",
+        xPct: 10,
+        yPct: 70,
+        widthPct: 80,
+        heightPct: 20,
+      },
+      {
+        id: "cover-photo-2",
+        kind: "photo",
         pageSide: "right",
         xPct: 0,
         yPct: 0,
@@ -41,11 +59,20 @@ export const COVER_LAYOUTS: Layout[] = [
     id: "cover-mosaic",
     name: "Photo Mosaic",
     category: "cover",
-    photoCount: 2,
+    photoCount: 3,
     quoteCount: 0,
     slots: [
       {
         id: "cover-photo-1",
+        kind: "photo",
+        pageSide: "left",
+        xPct: 5,
+        yPct: 10,
+        widthPct: 70,
+        heightPct: 80,
+      },
+      {
+        id: "cover-photo-2",
         kind: "photo",
         pageSide: "right",
         xPct: 0,
@@ -54,7 +81,7 @@ export const COVER_LAYOUTS: Layout[] = [
         heightPct: 100,
       },
       {
-        id: "cover-photo-2",
+        id: "cover-photo-3",
         kind: "photo",
         pageSide: "right",
         xPct: 65,
@@ -72,7 +99,8 @@ const INTERIOR_PHOTO_LAYOUTS: Layout[] = [
     name: "Full Bleed",
     category: "photo",
     photoCount: 1,
-    quoteCount: 0,
+    quoteCount: 1,
+    pairedQuoteLayoutId: "quote-1-centered",
     slots: [
       {
         id: "left-photo-1",
@@ -90,7 +118,8 @@ const INTERIOR_PHOTO_LAYOUTS: Layout[] = [
     name: "Wide Border",
     category: "photo",
     photoCount: 1,
-    quoteCount: 0,
+    quoteCount: 1,
+    pairedQuoteLayoutId: "quote-1-centered",
     slots: [
       {
         id: "left-photo-1",
@@ -108,7 +137,8 @@ const INTERIOR_PHOTO_LAYOUTS: Layout[] = [
     name: "Upper Two Thirds",
     category: "photo",
     photoCount: 1,
-    quoteCount: 0,
+    quoteCount: 1,
+    pairedQuoteLayoutId: "quote-1-centered",
     slots: [
       {
         id: "left-photo-1",
@@ -126,7 +156,8 @@ const INTERIOR_PHOTO_LAYOUTS: Layout[] = [
     name: "Small Center",
     category: "photo",
     photoCount: 1,
-    quoteCount: 0,
+    quoteCount: 1,
+    pairedQuoteLayoutId: "quote-1-centered",
     slots: [
       {
         id: "left-photo-1",
@@ -144,7 +175,8 @@ const INTERIOR_PHOTO_LAYOUTS: Layout[] = [
     name: "Stacked",
     category: "photo",
     photoCount: 2,
-    quoteCount: 0,
+    quoteCount: 2,
+    pairedQuoteLayoutId: "quote-2-stack",
     slots: [
       {
         id: "left-photo-1",
@@ -171,7 +203,8 @@ const INTERIOR_PHOTO_LAYOUTS: Layout[] = [
     name: "Columns",
     category: "photo",
     photoCount: 2,
-    quoteCount: 0,
+    quoteCount: 2,
+    pairedQuoteLayoutId: "quote-2-stack",
     slots: [
       {
         id: "left-photo-1",
@@ -198,7 +231,8 @@ const INTERIOR_PHOTO_LAYOUTS: Layout[] = [
     name: "Large + Small",
     category: "photo",
     photoCount: 2,
-    quoteCount: 0,
+    quoteCount: 2,
+    pairedQuoteLayoutId: "quote-2-stack",
     slots: [
       {
         id: "left-photo-1",
@@ -225,7 +259,8 @@ const INTERIOR_PHOTO_LAYOUTS: Layout[] = [
     name: "Three Stack",
     category: "photo",
     photoCount: 3,
-    quoteCount: 0,
+    quoteCount: 3,
+    pairedQuoteLayoutId: "quote-3-stack",
     slots: [
       {
         id: "left-photo-1",
@@ -261,7 +296,8 @@ const INTERIOR_PHOTO_LAYOUTS: Layout[] = [
     name: "Hero + Pair",
     category: "photo",
     photoCount: 3,
-    quoteCount: 0,
+    quoteCount: 3,
+    pairedQuoteLayoutId: "quote-3-stack",
     slots: [
       {
         id: "left-photo-1",
@@ -297,7 +333,8 @@ const INTERIOR_PHOTO_LAYOUTS: Layout[] = [
     name: "Grid",
     category: "photo",
     photoCount: 4,
-    quoteCount: 0,
+    quoteCount: 3,
+    pairedQuoteLayoutId: "quote-3-stack",
     slots: [
       {
         id: "left-photo-1",
@@ -342,7 +379,8 @@ const INTERIOR_PHOTO_LAYOUTS: Layout[] = [
     name: "Hero + Trio",
     category: "photo",
     photoCount: 4,
-    quoteCount: 0,
+    quoteCount: 3,
+    pairedQuoteLayoutId: "quote-3-stack",
     slots: [
       {
         id: "left-photo-1",
@@ -486,4 +524,19 @@ export const getQuoteLayouts = (count: number) =>
   INTERIOR_QUOTE_LAYOUTS.filter((layout) => layout.quoteCount === count)
 
 export const getCoverLayouts = () => COVER_LAYOUTS
+
+export const QUOTE_LAYOUT_BY_COUNT: Record<number, string> = {
+  1: "quote-1-centered",
+  2: "quote-2-stack",
+  3: "quote-3-stack",
+}
+
+export const DEFAULT_INTERIOR_PHOTO_LAYOUT_ID = "photo-1-full-bleed"
+export const DEFAULT_INTERIOR_QUOTE_LAYOUT_ID = "quote-1-centered"
+
+export const getQuoteLayoutIdForCount = (count: number) => {
+  if (count <= 1) return QUOTE_LAYOUT_BY_COUNT[1]
+  if (count === 2) return QUOTE_LAYOUT_BY_COUNT[2]
+  return QUOTE_LAYOUT_BY_COUNT[3]
+}
 

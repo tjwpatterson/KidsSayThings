@@ -38,7 +38,7 @@ export default function BookCanvas({
   pageLabel,
 }: BookCanvasProps) {
   const coverLabel = spreadKind === "cover" ? "Cover Spread" : "Interior Spread"
-  const coverLayoutForRight = spreadKind === "cover" ? leftLayout : rightLayout
+  const rightPageLayout = spreadKind === "cover" ? leftLayout : rightLayout
 
   return (
     <div className="flex-1 bg-gradient-to-br from-muted via-background to-muted/30 overflow-auto">
@@ -64,7 +64,7 @@ export default function BookCanvas({
             />
             <SpreadPage
               side="right"
-              layout={coverLayoutForRight}
+              layout={rightPageLayout}
               spread={spread}
               photos={photos}
               quotes={quotes}
@@ -134,23 +134,46 @@ function SpreadPage({
     return persons.find((p) => p.id === personId)?.display_name || null
   }
 
+  if (!layout) {
+    return (
+      <div className="flex-1 flex flex-col gap-3">
+        <div className="flex items-center justify-between text-xs text-muted-foreground uppercase tracking-wide">
+          <span>{label}</span>
+        </div>
+        <div className="relative bg-muted/20 rounded-2xl border border-dashed border-border/40 aspect-[2/3] overflow-hidden shadow-inner">
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 text-sm text-muted-foreground">
+            <p>Choose a layout from the Layouts panel to start designing this page.</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (slots.length === 0) {
+    return (
+      <div className="flex-1 flex flex-col gap-3">
+        <div className="flex items-center justify-between text-xs text-muted-foreground uppercase tracking-wide">
+          <span>{label}</span>
+          <span className="text-[10px] font-medium text-muted-foreground/70">0 slots</span>
+        </div>
+        <div className="relative bg-white rounded-2xl border border-border/50 aspect-[2/3] overflow-hidden shadow-inner">
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 text-xs text-muted-foreground">
+            <p>This layout keeps this page intentionally blank.</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex-1 flex flex-col gap-3">
       <div className="flex items-center justify-between text-xs text-muted-foreground uppercase tracking-wide">
         <span>{label}</span>
-        {layout && (
-          <span className="text-[10px] font-medium text-muted-foreground/70">
-            {slots.length} slot{slots.length === 1 ? "" : "s"}
-          </span>
-        )}
+        <span className="text-[10px] font-medium text-muted-foreground/70">
+          {slots.length} slot{slots.length === 1 ? "" : "s"}
+        </span>
       </div>
       <div className="relative bg-muted/20 rounded-2xl border border-border/50 aspect-[2/3] overflow-hidden shadow-inner">
-        {!layout && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 text-sm text-muted-foreground">
-            <p>Select a layout to unlock this page.</p>
-          </div>
-        )}
-
         {slots.map((slot) => (
           <SpreadSlot
             key={slot.id}

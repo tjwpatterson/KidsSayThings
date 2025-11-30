@@ -17,7 +17,12 @@ import type {
 } from "@/lib/types"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
-import { LAYOUTS_BY_ID } from "@/lib/books/layouts"
+import {
+  DEFAULT_INTERIOR_PHOTO_LAYOUT_ID,
+  DEFAULT_INTERIOR_QUOTE_LAYOUT_ID,
+  LAYOUTS_BY_ID,
+  getQuoteLayoutIdForCount,
+} from "@/lib/books/layouts"
 import { autoAssignEntriesToSlots, autoAssignPhotosToSlots } from "@/lib/books/layout-helpers"
 
 // Dynamically import ALL components to prevent any SSR
@@ -74,7 +79,6 @@ export default function BookDesignerClient({
   const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab>("photos")
   const [selectedPersonFilter, setSelectedPersonFilter] = useState<string>("all")
   const [selectedPhotoCount, setSelectedPhotoCount] = useState(1)
-  const [selectedQuoteCount, setSelectedQuoteCount] = useState(1)
   const [viewMode, setViewMode] = useState<"edit" | "manage">("edit")
   const [zoom, setZoom] = useState(100)
   const [clientReady, setClientReady] = useState(false)
@@ -169,7 +173,7 @@ export default function BookDesignerClient({
     (spread?: BookPage) => {
       if (!spread) return photos
       const currentAssignments =
-        spread.left_content
+        [...(spread.left_content || []), ...(spread.right_content || [])]
           ?.filter((item) => item.type === "photo")
           .map((item) => allPhotos.find((photo) => photo.id === item.id))
           .filter((item): item is BookPhoto => Boolean(item)) || []
@@ -220,7 +224,6 @@ export default function BookDesignerClient({
       : null
 
   const selectedPhotoLayoutId = spreadKind === "interior" ? currentSpread?.left_layout ?? null : null
-  const selectedQuoteLayoutId = spreadKind === "interior" ? currentSpread?.right_layout ?? null : null
   const selectedCoverLayoutId = spreadKind === "cover" ? currentSpread?.left_layout ?? null : null
   useEffect(() => {
     if (spreadKind === "interior") {
@@ -390,69 +393,62 @@ export default function BookDesignerClient({
       const layoutDef = LAYOUTS_BY_ID[layoutId]
       if (!layoutDef) return
       setSelectedPhotoCount(layoutDef.photoCount || 1)
+      const isCover = spreadKind === "cover"
 
       updateCurrentSpread((spread) => {
-        const nextContent = autoAssignPhotosToSlots({
+        const combinedExisting = [
+          ...(spread.left_content || []),
+          ...(spread.right_content || []),
+        ]
+
+        const assignedPhotos = autoAssignPhotosToSlots({
           layout: layoutDef,
-          existingContent: spread.left_content,
+          existingContent: combinedExisting,
           availablePhotos: buildPhotoPool(spread),
         })
+
+        const leftPhotos = assignedPhotos.filter((item) => item.pageSide !== "right")
+        const rightPhotos = assignedPhotos.filter((item) => item.pageSide === "right")
+
+        if (isCover) {
+          return {
+            ...spread,
+            left_layout: layoutId,
+            right_layout: layoutId,
+            left_content: leftPhotos,
+            right_content: rightPhotos,
+          }
+        }
+
+        const quoteLayoutId =
+          layoutDef.pairedQuoteLayoutId ||
+          getQuoteLayoutIdForCount(layoutDef.quoteCount || layoutDef.photoCount || 1)
+        const quoteLayout = LAYOUTS_BY_ID[quoteLayoutId]
+        const assignedQuotes = quoteLayout
+          ? autoAssignEntriesToSlots({
+              layout: quoteLayout,
+              existingContent: spread.right_content,
+              availableEntries: buildQuotePool(spread),
+            })
+          : spread.right_content || []
+
         return {
           ...spread,
           left_layout: layoutId,
-          left_content: nextContent,
+          right_layout: quoteLayoutId,
+          left_content: leftPhotos,
+          right_content: assignedQuotes,
         }
       })
     },
-    [updateCurrentSpread, buildPhotoPool]
-  )
-
-  const handleSelectQuoteLayout = useCallback(
-    (layoutId: string) => {
-      const layoutDef = LAYOUTS_BY_ID[layoutId]
-      if (!layoutDef) return
-      setSelectedQuoteCount(layoutDef.quoteCount || 1)
-
-      updateCurrentSpread((spread) => {
-        const nextContent = autoAssignEntriesToSlots({
-          layout: layoutDef,
-          existingContent: spread.right_content,
-          availableEntries: buildQuotePool(spread),
-        })
-        return {
-          ...spread,
-          right_layout: layoutId,
-          right_content: nextContent,
-        }
-      })
-    },
-    [updateCurrentSpread, buildQuotePool]
+    [updateCurrentSpread, buildPhotoPool, buildQuotePool, spreadKind]
   )
 
   const handleSelectCoverLayout = useCallback(
     (layoutId: string) => {
-      const layoutDef = LAYOUTS_BY_ID[layoutId]
-      if (!layoutDef) return
-      if (layoutDef.photoCount) {
-        setSelectedPhotoCount(layoutDef.photoCount)
-      }
-
-      updateCurrentSpread((spread) => {
-        const nextContent = autoAssignPhotosToSlots({
-          layout: layoutDef,
-          existingContent: spread.left_content,
-          availablePhotos: buildPhotoPool(spread),
-        })
-        return {
-          ...spread,
-          left_layout: layoutId,
-          left_content: nextContent,
-          right_layout: null,
-          right_content: [],
-        }
-      })
+      handleSelectPhotoLayout(layoutId)
     },
-    [updateCurrentSpread, buildPhotoPool]
+    [handleSelectPhotoLayout]
   )
 
   // Auto-generate book
@@ -475,7 +471,7 @@ export default function BookDesignerClient({
         pagesData.map((page: BookPage) => ({
           ...page,
           left_content: (page.left_content as any) || [],
-          right_content: [],
+          right_content: (page.right_content as any) || [],
         }))
       )
       setCurrentSpreadIndex(0)
@@ -588,33 +584,17 @@ export default function BookDesignerClient({
   }
 
   const handleAddSpread = useCallback(async () => {
-    const defaultPhotoLayout = LAYOUTS_BY_ID["photo-1-full-bleed"]
-    const defaultQuoteLayout = LAYOUTS_BY_ID["quote-1-centered"]
+    const defaultPhotoLayout = LAYOUTS_BY_ID[DEFAULT_INTERIOR_PHOTO_LAYOUT_ID]
+    const defaultQuoteLayout = LAYOUTS_BY_ID[DEFAULT_INTERIOR_QUOTE_LAYOUT_ID]
     const nextPageNumber = (pages[pages.length - 1]?.page_number || pages.length) + 1
-
-    const photoSlots = defaultPhotoLayout
-      ? autoAssignPhotosToSlots({
-          layout: defaultPhotoLayout,
-          existingContent: [],
-          availablePhotos: photos,
-        })
-      : []
-
-    const quoteSlots = defaultQuoteLayout
-      ? autoAssignEntriesToSlots({
-          layout: defaultQuoteLayout,
-          existingContent: [],
-          availableEntries: quotes,
-        })
-      : []
 
     const payload = {
       book_id: book.id,
       page_number: nextPageNumber,
       left_layout: defaultPhotoLayout?.id ?? null,
       right_layout: defaultQuoteLayout?.id ?? null,
-      left_content: photoSlots,
-      right_content: quoteSlots,
+      left_content: [],
+      right_content: [],
     }
 
     try {
@@ -633,8 +613,10 @@ export default function BookDesignerClient({
         ...prev,
         {
           ...saved,
-          left_content: payload.left_content,
-          right_content: payload.right_content,
+          left_layout: payload.left_layout,
+          right_layout: payload.right_layout,
+          left_content: [],
+          right_content: [],
         },
       ])
       setCurrentSpreadIndex(pages.length)
@@ -647,7 +629,7 @@ export default function BookDesignerClient({
         variant: "destructive",
       })
     }
-  }, [book.id, pages, photos, quotes, toast])
+  }, [book.id, pages.length, toast])
 
   // Remove item from page
   const handleRemoveItem = (itemId: string) => {
@@ -710,14 +692,10 @@ export default function BookDesignerClient({
               onBookUpdate={handleBookUpdate}
               spreadKind={spreadKind}
               selectedPhotoCount={selectedPhotoCount}
-              selectedQuoteCount={selectedQuoteCount}
               selectedLeftLayoutId={selectedPhotoLayoutId}
-              selectedRightLayoutId={selectedQuoteLayoutId}
               selectedCoverLayoutId={selectedCoverLayoutId}
               onPhotoCountChange={setSelectedPhotoCount}
-              onQuoteCountChange={setSelectedQuoteCount}
               onSelectLeftLayout={handleSelectPhotoLayout}
-              onSelectRightLayout={handleSelectQuoteLayout}
               onSelectCoverLayout={handleSelectCoverLayout}
             />
           </ResizableSidebar>

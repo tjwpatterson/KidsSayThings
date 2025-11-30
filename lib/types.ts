@@ -30,6 +30,7 @@ export interface Layout {
   category: LayoutCategory
   photoCount: number
   quoteCount: number
+  pairedQuoteLayoutId?: string
   slots: LayoutSlot[]
 }
 

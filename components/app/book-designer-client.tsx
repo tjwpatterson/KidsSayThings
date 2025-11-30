@@ -478,7 +478,7 @@ export default function BookDesignerClient({
           right_content: [],
         }))
       )
-      setCurrentPage(1)
+      setCurrentSpreadIndex(0)
       toast({
         title: "Book regenerated",
         description: "We refreshed your pages from this year’s entries.",

@@ -226,17 +226,12 @@ export default function BookDesignerClient({
   const selectedPhotoLayoutId = spreadKind === "interior" ? currentSpread?.left_layout ?? null : null
   const selectedCoverLayoutId = spreadKind === "cover" ? currentSpread?.left_layout ?? null : null
   useEffect(() => {
-    if (spreadKind === "interior") {
-      if (leftLayout?.photoCount) {
-        setSelectedPhotoCount(leftLayout.photoCount)
-      }
-      if (rightLayout?.quoteCount) {
-        setSelectedQuoteCount(rightLayout.quoteCount)
-      }
+    if (spreadKind === "interior" && leftLayout?.photoCount) {
+      setSelectedPhotoCount(leftLayout.photoCount)
     } else if (spreadKind === "cover" && leftLayout?.photoCount) {
       setSelectedPhotoCount(leftLayout.photoCount)
     }
-  }, [spreadKind, leftLayout?.photoCount, rightLayout?.quoteCount])
+  }, [spreadKind, leftLayout?.photoCount])
   const spreadPageLabel = useMemo(() => {
     if (!currentSpread) return "No pages yet"
     if (spreadKind === "cover") {

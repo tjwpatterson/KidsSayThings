@@ -662,17 +662,11 @@ export default function BookDesigner({
 
           {/* Center Canvas */}
           <div className="flex-1 overflow-auto relative" style={{ zoom: `${zoom}%` }}>
-            <BookCanvas
-              currentPage={currentPageData}
-              layout={layout}
-              photos={allPhotos}
-              quotes={allQuotes}
-              persons={initialPersons}
-              totalPages={Math.max(pages.length, currentPage, 1)}
+            <BookPageThumbnails
               pages={pages}
-              onLayoutChange={handleLayoutChange}
-              onRemoveItem={handleRemoveItem}
+              currentPage={currentPage}
               onPageSelect={setCurrentPage}
+              onAddPage={() => Promise.resolve()}
               onPageReorder={async (reorderedPages: BookPage[]) => {
                 // Update page numbers in database
                 // Use temporary high numbers first to avoid conflicts, then update to final numbers

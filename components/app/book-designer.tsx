@@ -618,6 +618,8 @@ export default function BookDesigner({
           book={book}
           onUpdate={handleBookUpdate}
           onAutoGenerate={handleAutoGenerate}
+          onToggleManageView={() => {}}
+          isManageView={false}
           saving={saving}
           zoom={zoom}
           onZoomChange={setZoom}

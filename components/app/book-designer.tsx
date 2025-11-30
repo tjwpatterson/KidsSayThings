@@ -666,7 +666,10 @@ export default function BookDesigner({
               pages={pages}
               currentPage={currentPage}
               onPageSelect={setCurrentPage}
-              onAddPage={() => Promise.resolve()}
+              photos={photos}
+              quotes={quotes}
+              persons={initialPersons}
+              layout={null}
               onPageReorder={async (reorderedPages: BookPage[]) => {
                 // Update page numbers in database
                 // Use temporary high numbers first to avoid conflicts, then update to final numbers

@@ -385,5 +385,3 @@ function RemoveSlotButton({ onRemove }: { onRemove: () => void }) {
     </Button>
   )
 }
-
-export default BookCanvas

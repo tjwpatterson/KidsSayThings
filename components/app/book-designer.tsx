@@ -646,6 +646,7 @@ export default function BookDesigner({
               onPersonFilterChange={setSelectedPersonFilter}
               onPhotosUploaded={handlePhotosUploaded}
               onBookUpdate={handleBookUpdate}
+              activeSpreadIndex={0}
               spreadKind="interior"
               selectedPhotoCount={1}
               selectedLeftLayoutId={null}

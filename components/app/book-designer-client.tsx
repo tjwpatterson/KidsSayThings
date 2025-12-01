@@ -735,6 +735,7 @@ export default function BookDesignerClient({
               onPersonFilterChange={setSelectedPersonFilter}
               onPhotosUploaded={handlePhotosUploaded}
               onBookUpdate={handleBookUpdate}
+              activeSpreadIndex={activeSpreadIndex}
               spreadKind={activeSpreadKind}
               selectedPhotoCount={selectedPhotoCount}
               selectedLeftLayoutId={selectedPhotoLayoutId}
@@ -746,28 +747,27 @@ export default function BookDesignerClient({
           </ResizableSidebar>
 
           {/* Center Canvas */}
-          <div className="flex-1 overflow-hidden relative">
+          <div className="flex-1 overflow-hidden">
             {viewMode === "edit" ? (
-              <div className="absolute inset-0" style={{ zoom: `${zoom}%`, transformOrigin: "top center" }}>
-                <BookCanvas
-                  spreads={pages}
-                  spreadKinds={spreadKinds}
-                  spreadLabels={spreadLabels}
-                  activeSpreadIndex={activeSpreadIndex}
-                  photos={allPhotos}
-                  quotes={allQuotes}
-                  persons={initialPersons}
-                  layoutsById={LAYOUTS_BY_ID}
-                  onActiveSpreadChange={(index) => setActiveSpreadIndex(index)}
-                  onRemoveItem={handleRemoveItem}
-                  buildDroppableId={buildSlotDroppableId}
-                  onScrollApiChange={(fn) => {
-                    if (fn) {
-                      scrollToSpreadRef.current = fn
-                    }
-                  }}
-                />
-              </div>
+              <BookCanvas
+                spreads={pages}
+                spreadKinds={spreadKinds}
+                spreadLabels={spreadLabels}
+                activeSpreadIndex={activeSpreadIndex}
+                zoom={zoom}
+                photos={allPhotos}
+                quotes={allQuotes}
+                persons={initialPersons}
+                layoutsById={LAYOUTS_BY_ID}
+                onActiveSpreadChange={(index) => setActiveSpreadIndex(index)}
+                onRemoveItem={handleRemoveItem}
+                buildDroppableId={buildSlotDroppableId}
+                onScrollApiChange={(fn) => {
+                  if (fn) {
+                    scrollToSpreadRef.current = fn
+                  }
+                }}
+              />
             ) : (
               <BookManagePages
                 spreads={pages}

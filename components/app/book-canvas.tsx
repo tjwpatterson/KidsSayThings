@@ -20,6 +20,7 @@ interface BookCanvasProps {
   spreadKinds: SpreadKind[]
   spreadLabels: string[]
   activeSpreadIndex: number
+  zoom: number
   photos: BookPhoto[]
   quotes: Entry[]
   persons: Person[]
@@ -35,6 +36,7 @@ export default function BookCanvas({
   spreadKinds,
   spreadLabels,
   activeSpreadIndex,
+  zoom,
   photos,
   quotes,
   persons,
@@ -89,7 +91,10 @@ export default function BookCanvas({
   return (
     <div className="flex-1 bg-gradient-to-br from-muted via-background to-muted/30 overflow-hidden">
       <div ref={scrollContainerRef} className="h-full overflow-y-auto">
-        <div className="w-full max-w-6xl mx-auto py-10 px-6 space-y-10">
+        <div
+          className="w-full max-w-6xl mx-auto py-10 px-6 space-y-10"
+          style={{ zoom: `${zoom}%`, transformOrigin: "top center" }}
+        >
           {spreads.length === 0 ? (
             <div className="rounded-[32px] border border-dashed border-border/50 bg-white/80 p-10 text-center text-sm text-muted-foreground">
               No spreads yet. Use the layouts panel or Manage Pages to add your first spread.

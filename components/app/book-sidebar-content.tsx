@@ -72,6 +72,7 @@ interface BookSidebarContentProps {
   onPersonFilterChange: (personId: string) => void
   onPhotosUploaded: (photos: BookPhoto[]) => void
   onBookUpdate: (updates: Partial<Book>) => Promise<void>
+  activeSpreadIndex: number
   spreadKind: SpreadKind
   selectedPhotoCount: number
   selectedLeftLayoutId: string | null
@@ -92,6 +93,7 @@ export default function BookSidebarContent({
   onPersonFilterChange,
   onPhotosUploaded,
   onBookUpdate,
+  activeSpreadIndex,
   spreadKind,
   selectedPhotoCount,
   selectedLeftLayoutId,
@@ -208,7 +210,7 @@ export default function BookSidebarContent({
   if (activeTab === "layouts") {
     return (
       <BookLayoutsPanel
-        spreadKind={spreadKind}
+        activeSpreadIndex={activeSpreadIndex}
         selectedPhotoCount={selectedPhotoCount}
         selectedCoverLayoutId={selectedCoverLayoutId}
         selectedPhotoLayoutId={selectedLeftLayoutId}

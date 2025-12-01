@@ -1,19 +1,15 @@
 "use client"
 
 import { Fragment } from "react"
-import type { Layout, SpreadKind } from "@/lib/types"
+import type { Layout } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import {
-  getCoverLayouts,
-  getPhotoLayouts,
-  getQuoteLayouts,
-} from "@/lib/books/layouts"
+import { getCoverLayouts, getPhotoLayouts } from "@/lib/books/layouts"
 
 const PHOTO_OPTIONS = [1, 2, 3, 4]
 
 interface LayoutsPanelProps {
-  spreadKind: SpreadKind
+  activeSpreadIndex: number
   selectedPhotoCount: number
   selectedCoverLayoutId: string | null
   selectedPhotoLayoutId: string | null
@@ -23,7 +19,7 @@ interface LayoutsPanelProps {
 }
 
 export default function BookLayoutsPanel({
-  spreadKind,
+  activeSpreadIndex,
   selectedPhotoCount,
   selectedCoverLayoutId,
   selectedPhotoLayoutId,
@@ -31,7 +27,9 @@ export default function BookLayoutsPanel({
   onSelectPhotoLayout,
   onSelectCoverLayout,
 }: LayoutsPanelProps) {
-  if (spreadKind === "cover") {
+  const isCover = activeSpreadIndex === 0
+
+  if (isCover) {
     const coverLayouts = getCoverLayouts()
 
     return (

@@ -56,32 +56,12 @@ interface BookDesignerClientProps {
   initialPhotos: BookPhoto[]
 }
 
-const inferSpreadKind = (index: number, total: number): SpreadKind => {
-  if (total <= 1) {
-    return "cover"
-  }
-  if (index === 0 || index === total - 1) {
-    return "cover"
-  }
-  return "interior"
-}
-
-const annotateSpreadKinds = (spreads: BookPage[]): BookPage[] => {
-  const total = spreads.length
-  if (total === 0) return spreads
-  return spreads.map((spread, index) => {
-    const inferredKind = spread.kind ?? inferSpreadKind(index, total)
-    if (spread.kind === inferredKind) {
-      return spread
-    }
-    return { ...spread, kind: inferredKind }
-  })
-}
-
 const buildSlotDroppableId = (spread: BookPage, spreadIndex: number, slotId: string) => {
   const spreadKey = spread.id && spread.id.length > 0 ? spread.id : `spread-${spreadIndex}`
   return `${spreadKey}-${slotId}`
 }
+
+const getSpreadKind = (index: number): SpreadKind => (index === 0 ? "cover" : "interior")
 
 export default function BookDesignerClient({
   book: initialBook,
@@ -96,7 +76,7 @@ export default function BookDesignerClient({
 
   // State management
   const [book, setBook] = useState<Book>(initialBook)
-  const [pages, setPages] = useState<BookPage[]>(() => annotateSpreadKinds(initialPages || []))
+  const [pages, setPages] = useState<BookPage[]>(() => initialPages || [])
   const [activeSpreadIndex, setActiveSpreadIndex] = useState(0)
   const [allPhotos, setAllPhotos] = useState<BookPhoto[]>(initialPhotos || [])
   const [allQuotes, setAllQuotes] = useState<Entry[]>(initialEntries || [])
@@ -247,16 +227,13 @@ export default function BookDesignerClient({
   )
 
   const spreadKinds = useMemo(
-    () =>
-      pages.map((spread, index) =>
-        spread.kind ?? inferSpreadKind(index, Math.max(pages.length, 1))
-      ),
-    [pages]
+    () => pages.map((_, index) => getSpreadKind(index)),
+    [pages.length]
   )
 
   const activeSpread = pages[activeSpreadIndex]
   const activeSpreadKind: SpreadKind =
-    spreadKinds[activeSpreadIndex] ?? inferSpreadKind(activeSpreadIndex, Math.max(pages.length, 1))
+    spreadKinds[activeSpreadIndex] ?? getSpreadKind(activeSpreadIndex)
 
   const activeLeftLayout: Layout | null =
     activeSpread?.left_layout && LAYOUTS_BY_ID[activeSpread.left_layout]
@@ -278,20 +255,13 @@ export default function BookDesignerClient({
 
   const getSpreadLabel = useCallback(
     (spread: BookPage, index: number) => {
-      const total = Math.max(pages.length, 1)
-      const lastIndex = Math.max(pages.length - 1, 0)
-      const kind = spread.kind ?? inferSpreadKind(index, total)
-      if (kind === "cover") {
-        if (index === 0) return "Front Cover"
-        if (index === lastIndex && lastIndex !== 0) return "Back Cover"
-        return "Cover Spread"
-      }
+      if (index === 0) return "Front Cover / Inside Cover"
       const spreadNumber = spread.page_number || index + 1
       const leftNumber = spreadNumber * 2 - 1
       const rightNumber = leftNumber + 1
       return `Pages ${leftNumber}–${rightNumber}`
     },
-    [pages.length]
+    []
   )
 
   const spreadLabels = useMemo(
@@ -309,7 +279,7 @@ export default function BookDesignerClient({
     >()
 
     pages.forEach((spread, spreadIndex) => {
-      const kind = spreadKinds[spreadIndex] ?? inferSpreadKind(spreadIndex, Math.max(pages.length, 1))
+      const kind = spreadKinds[spreadIndex] ?? getSpreadKind(spreadIndex)
       const leftSource = spread.left_layout ? LAYOUTS_BY_ID[spread.left_layout] || null : null
       const rightSource =
         kind === "cover"
@@ -417,9 +387,8 @@ export default function BookDesignerClient({
 
         const updated = mutator(draft)
         next[spreadIndex] = updated
-        const annotated = annotateSpreadKinds(next)
         scheduleSave(updated)
-        return annotated
+        return next
       })
     },
     [scheduleSave]
@@ -539,14 +508,13 @@ export default function BookDesignerClient({
       const data = await res.json()
       const pagesData = data.pages || []
 
-      const annotated = annotateSpreadKinds(
+      setPages(
         pagesData.map((page: BookPage) => ({
           ...page,
           left_content: (page.left_content as any) || [],
           right_content: (page.right_content as any) || [],
         }))
       )
-      setPages(annotated)
       setActiveSpreadIndex(0)
       scrollToSpreadRef.current(0)
       toast({
@@ -686,19 +654,16 @@ export default function BookDesignerClient({
       }
 
       const saved = await res.json()
-      setPages((prev) =>
-        annotateSpreadKinds([
-          ...prev,
-          {
-            ...saved,
-            left_layout: payload.left_layout,
-            right_layout: payload.right_layout,
-            left_content: [],
-            right_content: [],
-            kind: "interior",
-          },
-        ])
-      )
+      setPages((prev) => [
+        ...prev,
+        {
+          ...saved,
+          left_layout: payload.left_layout,
+          right_layout: payload.right_layout,
+          left_content: [],
+          right_content: [],
+        },
+      ])
       setActiveSpreadIndex(pages.length)
       scrollToSpreadRef.current(pages.length)
       setViewMode("edit")

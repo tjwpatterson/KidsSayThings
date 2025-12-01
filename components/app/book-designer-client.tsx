@@ -78,6 +78,11 @@ const annotateSpreadKinds = (spreads: BookPage[]): BookPage[] => {
   })
 }
 
+const buildSlotDroppableId = (spread: BookPage, spreadIndex: number, slotId: string) => {
+  const spreadKey = spread.id && spread.id.length > 0 ? spread.id : `spread-${spreadIndex}`
+  return `${spreadKey}-${slotId}`
+}
+
 export default function BookDesignerClient({
   book: initialBook,
   initialEntries,
@@ -92,7 +97,7 @@ export default function BookDesignerClient({
   // State management
   const [book, setBook] = useState<Book>(initialBook)
   const [pages, setPages] = useState<BookPage[]>(() => annotateSpreadKinds(initialPages || []))
-  const [currentSpreadIndex, setCurrentSpreadIndex] = useState(0)
+  const [activeSpreadIndex, setActiveSpreadIndex] = useState(0)
   const [allPhotos, setAllPhotos] = useState<BookPhoto[]>(initialPhotos || [])
   const [allQuotes, setAllQuotes] = useState<Entry[]>(initialEntries || [])
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -105,6 +110,7 @@ export default function BookDesignerClient({
   const [zoom, setZoom] = useState(100)
   const [clientReady, setClientReady] = useState(false)
   const pendingSpreadRef = useRef<BookPage | null>(null)
+  const scrollToSpreadRef = useRef<(index: number) => void>(() => {})
 
   // Set clientReady after mount - must be called unconditionally
   useEffect(() => {
@@ -130,14 +136,14 @@ export default function BookDesignerClient({
 
   useEffect(() => {
     if (pages.length === 0) {
-      setCurrentSpreadIndex(0)
+      setActiveSpreadIndex(0)
       return
     }
 
-    if (currentSpreadIndex >= pages.length) {
-      setCurrentSpreadIndex(Math.max(pages.length - 1, 0))
+    if (activeSpreadIndex >= pages.length) {
+      setActiveSpreadIndex(Math.max(pages.length - 1, 0))
     }
-  }, [pages.length, currentSpreadIndex])
+  }, [pages.length, activeSpreadIndex])
 
   // Keyboard navigation
   useEffect(() => {
@@ -149,23 +155,32 @@ export default function BookDesignerClient({
         return
       }
 
+      const maxIndex = Math.max(pages.length - 1, 0)
+
       if (e.key === "ArrowLeft" && e.ctrlKey) {
         e.preventDefault()
-        if (currentSpreadIndex > 0) {
-          setCurrentSpreadIndex((prev) => Math.max(prev - 1, 0))
-        }
+        setActiveSpreadIndex((prev) => {
+          const next = Math.max(prev - 1, 0)
+          if (next !== prev) {
+            scrollToSpreadRef.current(next)
+          }
+          return next
+        })
       } else if (e.key === "ArrowRight" && e.ctrlKey) {
         e.preventDefault()
-        const maxIndex = Math.max(pages.length - 1, 0)
-        if (currentSpreadIndex < maxIndex) {
-          setCurrentSpreadIndex((prev) => Math.min(prev + 1, maxIndex))
-        }
+        setActiveSpreadIndex((prev) => {
+          const next = Math.min(prev + 1, maxIndex)
+          if (next !== prev) {
+            scrollToSpreadRef.current(next)
+          }
+          return next
+        })
       }
     }
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [currentSpreadIndex, pages.length])
+  }, [pages.length])
 
   // Get used item IDs from all pages
   const getUsedItemIds = () => {
@@ -231,46 +246,36 @@ export default function BookDesignerClient({
     [allQuotes, quotes]
   )
 
-  const currentSpread = pages[currentSpreadIndex]
-  const totalSpreads = Math.max(pages.length, 1)
-  const normalizedIndex =
-    pages.length === 0 ? 0 : Math.min(currentSpreadIndex, Math.max(pages.length - 1, 0))
-  const derivedSpreadKind = inferSpreadKind(normalizedIndex, totalSpreads)
-  const spreadKind: SpreadKind = currentSpread?.kind ?? derivedSpreadKind
+  const spreadKinds = useMemo(
+    () =>
+      pages.map((spread, index) =>
+        spread.kind ?? inferSpreadKind(index, Math.max(pages.length, 1))
+      ),
+    [pages]
+  )
 
-  const leftLayout: Layout | null =
-    currentSpread?.left_layout && LAYOUTS_BY_ID[currentSpread.left_layout]
-      ? LAYOUTS_BY_ID[currentSpread.left_layout]
+  const activeSpread = pages[activeSpreadIndex]
+  const activeSpreadKind: SpreadKind =
+    spreadKinds[activeSpreadIndex] ?? inferSpreadKind(activeSpreadIndex, Math.max(pages.length, 1))
+
+  const activeLeftLayout: Layout | null =
+    activeSpread?.left_layout && LAYOUTS_BY_ID[activeSpread.left_layout]
+      ? LAYOUTS_BY_ID[activeSpread.left_layout]
       : null
 
-  const rightLayout: Layout | null =
-    currentSpread?.right_layout && LAYOUTS_BY_ID[currentSpread.right_layout]
-      ? LAYOUTS_BY_ID[currentSpread.right_layout]
-      : null
+  const selectedPhotoLayoutId =
+    activeSpreadKind === "interior" ? activeSpread?.left_layout ?? null : null
+  const selectedCoverLayoutId =
+    activeSpreadKind === "cover" ? activeSpread?.left_layout ?? null : null
 
-  const selectedPhotoLayoutId = spreadKind === "interior" ? currentSpread?.left_layout ?? null : null
-  const selectedCoverLayoutId = spreadKind === "cover" ? currentSpread?.left_layout ?? null : null
   useEffect(() => {
-    if (spreadKind === "interior" && leftLayout?.photoCount) {
-      setSelectedPhotoCount(leftLayout.photoCount)
-    } else if (spreadKind === "cover" && leftLayout?.photoCount) {
-      setSelectedPhotoCount(leftLayout.photoCount)
+    if (activeLeftLayout?.photoCount) {
+      setSelectedPhotoCount(activeLeftLayout.photoCount)
+    } else if (!activeSpread) {
+      setSelectedPhotoCount(1)
     }
-  }, [spreadKind, leftLayout?.photoCount])
-  const spreadPageLabel = useMemo(() => {
-    if (!currentSpread) return "No pages yet"
-    const labelKind = currentSpread.kind ?? spreadKind
-    if (labelKind === "cover") {
-      const lastIndex = Math.max(pages.length - 1, 0)
-      if (normalizedIndex === 0) return "Front Cover / Inside Cover"
-      if (normalizedIndex === lastIndex && lastIndex !== 0) return "Back Cover"
-      return "Cover Spread"
-    }
-    const spreadNumber = currentSpread.page_number || currentSpreadIndex + 1
-    const leftNumber = spreadNumber * 2 - 1
-    const rightNumber = leftNumber + 1
-    return `Pages ${leftNumber}–${rightNumber}`
-  }, [currentSpread, currentSpreadIndex, normalizedIndex, pages.length, spreadKind])
+  }, [activeSpread, activeLeftLayout?.photoCount])
+
   const getSpreadLabel = useCallback(
     (spread: BookPage, index: number) => {
       const total = Math.max(pages.length, 1)
@@ -289,15 +294,51 @@ export default function BookDesignerClient({
     [pages.length]
   )
 
+  const spreadLabels = useMemo(
+    () => pages.map((spread, index) => getSpreadLabel(spread, index)),
+    [pages, getSpreadLabel]
+  )
+
   const slotMap = useMemo(() => {
-    const map = new Map<string, LayoutSlot>()
-    ;(leftLayout?.slots || []).forEach((slot) => map.set(slot.id, slot))
-    ;(rightLayout?.slots || []).forEach((slot) => map.set(slot.id, slot))
+    const map = new Map<
+      string,
+      {
+        slot: LayoutSlot
+        spreadIndex: number
+      }
+    >()
+
+    pages.forEach((spread, spreadIndex) => {
+      const kind = spreadKinds[spreadIndex] ?? inferSpreadKind(spreadIndex, Math.max(pages.length, 1))
+      const leftSource = spread.left_layout ? LAYOUTS_BY_ID[spread.left_layout] || null : null
+      const rightSource =
+        kind === "cover"
+          ? spread.right_layout
+            ? LAYOUTS_BY_ID[spread.right_layout] || null
+            : leftSource
+          : spread.right_layout
+          ? LAYOUTS_BY_ID[spread.right_layout] || null
+          : null
+
+      if (leftSource) {
+        leftSource.slots
+          .filter((slot) => slot.pageSide === "left")
+          .forEach((slot) => {
+            map.set(buildSlotDroppableId(spread, spreadIndex, slot.id), { slot, spreadIndex })
+          })
+      }
+
+      if (rightSource) {
+        rightSource.slots
+          .filter((slot) => slot.pageSide === "right")
+          .forEach((slot) => {
+            map.set(buildSlotDroppableId(spread, spreadIndex, slot.id), { slot, spreadIndex })
+          })
+      }
+    })
+
     return map
-  }, [leftLayout, rightLayout, currentSpread?.id])
-  const maxSpreadIndex = Math.max(pages.length - 1, 0)
-  const canNavigatePrev = currentSpreadIndex > 0
-  const canNavigateNext = currentSpreadIndex < maxSpreadIndex
+  }, [pages, spreadKinds])
 
   // Update book properties
   const persistSpread = useCallback(
@@ -361,13 +402,13 @@ export default function BookDesignerClient({
     }
   }, [saveTimeout])
 
-  const updateCurrentSpread = useCallback(
-    (mutator: (spread: BookPage) => BookPage) => {
+  const updateSpreadAtIndex = useCallback(
+    (spreadIndex: number, mutator: (spread: BookPage) => BookPage) => {
       setPages((prev) => {
-        if (!prev[currentSpreadIndex]) return prev
+        if (!prev[spreadIndex]) return prev
 
         const next = [...prev]
-        const base = next[currentSpreadIndex]
+        const base = next[spreadIndex]
         const draft: BookPage = {
           ...base,
           left_content: [...(base.left_content || [])],
@@ -375,12 +416,13 @@ export default function BookDesignerClient({
         }
 
         const updated = mutator(draft)
-        next[currentSpreadIndex] = updated
+        next[spreadIndex] = updated
+        const annotated = annotateSpreadKinds(next)
         scheduleSave(updated)
-        return next
+        return annotated
       })
     },
-    [currentSpreadIndex, scheduleSave]
+    [scheduleSave]
   )
 
   const handleBookUpdate = useCallback(
@@ -410,16 +452,22 @@ export default function BookDesignerClient({
     [book.id, supabase, toast]
   )
 
-  // Debounced auto-save will be driven by updateCurrentSpread -> scheduleSave
+  // Debounced auto-save will be driven by updateSpreadAtIndex -> scheduleSave
 
   const handleSelectPhotoLayout = useCallback(
     (layoutId: string) => {
       const layoutDef = LAYOUTS_BY_ID[layoutId]
       if (!layoutDef) return
-      setSelectedPhotoCount(layoutDef.photoCount || 1)
-      const isCover = spreadKind === "cover"
+      const targetIndex = activeSpreadIndex
+      const targetSpread = pages[targetIndex]
+      if (!targetSpread) return
 
-      updateCurrentSpread((spread) => {
+      setSelectedPhotoCount(layoutDef.photoCount || 1)
+      const targetKind =
+        targetSpread.kind ?? inferSpreadKind(targetIndex, Math.max(pages.length, 1))
+      const isCover = targetKind === "cover"
+
+      updateSpreadAtIndex(targetIndex, (spread) => {
         const combinedExisting = [
           ...(spread.left_content || []),
           ...(spread.right_content || []),
@@ -465,7 +513,7 @@ export default function BookDesignerClient({
         }
       })
     },
-    [updateCurrentSpread, buildPhotoPool, buildQuotePool, spreadKind]
+    [activeSpreadIndex, pages, updateSpreadAtIndex, buildPhotoPool, buildQuotePool]
   )
 
   const handleSelectCoverLayout = useCallback(
@@ -491,16 +539,16 @@ export default function BookDesignerClient({
       const data = await res.json()
       const pagesData = data.pages || []
 
-      setPages(
-        annotateSpreadKinds(
-          pagesData.map((page: BookPage) => ({
-            ...page,
-            left_content: (page.left_content as any) || [],
-            right_content: (page.right_content as any) || [],
-          }))
-        )
+      const annotated = annotateSpreadKinds(
+        pagesData.map((page: BookPage) => ({
+          ...page,
+          left_content: (page.left_content as any) || [],
+          right_content: (page.right_content as any) || [],
+        }))
       )
-      setCurrentSpreadIndex(0)
+      setPages(annotated)
+      setActiveSpreadIndex(0)
+      scrollToSpreadRef.current(0)
       toast({
         title: "Book regenerated",
         description: "We refreshed your pages from this year’s entries.",
@@ -536,10 +584,11 @@ export default function BookDesignerClient({
       return
     }
 
-    const slot = slotMap.get(overId)
-    if (!slot) {
+    const slotEntry = slotMap.get(overId)
+    if (!slotEntry) {
       return
     }
+    const { slot, spreadIndex } = slotEntry
 
     if ((slot.kind === "photo" && !isPhoto) || (slot.kind === "quote" && !isQuote)) {
       toast({
@@ -563,7 +612,7 @@ export default function BookDesignerClient({
       },
     }
 
-    updateCurrentSpread((spread) => {
+    updateSpreadAtIndex(spreadIndex, (spread) => {
       let leftContent = (spread.left_content || []).filter((item) => item.id !== newItem.id)
       let rightContent = (spread.right_content || []).filter((item) => item.id !== newItem.id)
 
@@ -581,6 +630,8 @@ export default function BookDesignerClient({
         right_content: rightContent,
       }
     })
+
+    setActiveSpreadIndex(spreadIndex)
   }
 
   // Photo upload/refresh handler
@@ -648,7 +699,8 @@ export default function BookDesignerClient({
           },
         ])
       )
-      setCurrentSpreadIndex(pages.length)
+      setActiveSpreadIndex(pages.length)
+      scrollToSpreadRef.current(pages.length)
       setViewMode("edit")
     } catch (error: any) {
       console.error("Add spread failed", error)
@@ -661,8 +713,8 @@ export default function BookDesignerClient({
   }, [book.id, pages.length, toast])
 
   // Remove item from page
-  const handleRemoveItem = (itemId: string) => {
-    updateCurrentSpread((spread) => {
+  const handleRemoveItem = (spreadIndex: number, itemId: string) => {
+    updateSpreadAtIndex(spreadIndex, (spread) => {
       const leftContent = (spread.left_content || []).filter((item) => item.id !== itemId)
       const rightContent = (spread.right_content || []).filter((item) => item.id !== itemId)
       return {
@@ -719,7 +771,7 @@ export default function BookDesignerClient({
               onPersonFilterChange={setSelectedPersonFilter}
               onPhotosUploaded={handlePhotosUploaded}
               onBookUpdate={handleBookUpdate}
-              spreadKind={spreadKind}
+              spreadKind={activeSpreadKind}
               selectedPhotoCount={selectedPhotoCount}
               selectedLeftLayoutId={selectedPhotoLayoutId}
               selectedCoverLayoutId={selectedCoverLayoutId}
@@ -730,38 +782,36 @@ export default function BookDesignerClient({
           </ResizableSidebar>
 
           {/* Center Canvas */}
-          <div className="flex-1 overflow-auto relative" style={{ zoom: `${zoom}%` }}>
+          <div className="flex-1 overflow-hidden relative">
             {viewMode === "edit" ? (
-              <BookCanvas
-                spread={currentSpread}
-                leftLayout={leftLayout}
-                rightLayout={rightLayout}
-                spreadKind={spreadKind}
-                photos={allPhotos}
-                quotes={allQuotes}
-                persons={initialPersons}
-                onRemoveItem={handleRemoveItem}
-                onNavigatePrev={() => {
-                  if (canNavigatePrev) {
-                    setCurrentSpreadIndex((prev) => Math.max(prev - 1, 0))
-                  }
-                }}
-                onNavigateNext={() => {
-                  if (canNavigateNext) {
-                    setCurrentSpreadIndex((prev) => Math.min(prev + 1, maxSpreadIndex))
-                  }
-                }}
-                canNavigatePrev={canNavigatePrev}
-                canNavigateNext={canNavigateNext}
-                pageLabel={spreadPageLabel}
-              />
+              <div className="absolute inset-0" style={{ zoom: `${zoom}%`, transformOrigin: "top center" }}>
+                <BookCanvas
+                  spreads={pages}
+                  spreadKinds={spreadKinds}
+                  spreadLabels={spreadLabels}
+                  activeSpreadIndex={activeSpreadIndex}
+                  photos={allPhotos}
+                  quotes={allQuotes}
+                  persons={initialPersons}
+                  layoutsById={LAYOUTS_BY_ID}
+                  onActiveSpreadChange={(index) => setActiveSpreadIndex(index)}
+                  onRemoveItem={handleRemoveItem}
+                  buildDroppableId={buildSlotDroppableId}
+                  onScrollApiChange={(fn) => {
+                    if (fn) {
+                      scrollToSpreadRef.current = fn
+                    }
+                  }}
+                />
+              </div>
             ) : (
               <BookManagePages
                 spreads={pages}
-                currentIndex={currentSpreadIndex}
+                currentIndex={activeSpreadIndex}
                 onSelectSpread={(index) => {
-                  setCurrentSpreadIndex(index)
+                  setActiveSpreadIndex(index)
                   setViewMode("edit")
+                  scrollToSpreadRef.current(index)
                 }}
                 onAddSpread={() => handleAddSpread()}
                 getLabel={getSpreadLabel}

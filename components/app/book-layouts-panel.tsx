@@ -59,27 +59,36 @@ export default function BookLayoutsPanel({
     <div className="flex-1 border-r border-border/50 bg-gradient-to-b from-background to-muted/20 flex flex-col overflow-hidden min-w-[200px]">
       <div className="p-4 border-b space-y-4">
         <div>
-          <h3 className="font-semibold text-sm mb-3">Left Page · Photos</h3>
+          <h3 className="font-semibold text-sm">Page Layouts</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Curated Artifact Uprising-style spreads for interior pages.
+          </p>
+        </div>
+        <div>
+          <p className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground/90 mb-2">
+            Number of photos
+          </p>
           <div className="flex flex-wrap gap-2">
             {PHOTO_OPTIONS.map((count) => (
               <Button
                 key={count}
                 size="sm"
                 variant={count === selectedPhotoCount ? "default" : "outline"}
+                aria-label={`${count} ${count === 1 ? "photo" : "photos"}`}
                 className={cn(
-                  "h-7 text-xs px-3",
+                  "h-7 text-xs px-3 rounded-full",
                   count === selectedPhotoCount && "bg-primary text-primary-foreground"
                 )}
                 onClick={() => onPhotoCountChange(count)}
               >
-                {count} {count === 1 ? "photo" : "photos"}
+                {count}
               </Button>
             ))}
           </div>
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Choose a photo-forward layout for the left page. We’ll auto-pair the right page with a matching quote layout.
+          Left pages stay photo-focused while we auto-pair the right page with a matching quote layout (up to three quotes).
         </p>
       </div>
 
@@ -137,6 +146,8 @@ function LayoutThumbnail({
   return (
     <button
       onClick={onClick}
+      title={layout.tooltip}
+      aria-label={layout.tooltip ? `${layout.name}: ${layout.tooltip}` : layout.name}
       className={cn(
         "rounded-xl border p-2 text-left transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         selected

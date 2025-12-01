@@ -31,6 +31,7 @@ export interface Layout {
   photoCount: number
   quoteCount: number
   pairedQuoteLayoutId?: string
+  tooltip?: string
   slots: LayoutSlot[]
 }
 
@@ -145,6 +146,7 @@ export interface BookPage {
   right_content: PageContentItem[]
   created_at: string
   updated_at: string
+  kind?: SpreadKind
 }
 
 export interface BookPhoto {

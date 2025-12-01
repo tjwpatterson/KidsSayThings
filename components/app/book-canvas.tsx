@@ -38,7 +38,8 @@ export default function BookCanvas({
   pageLabel,
 }: BookCanvasProps) {
   const coverLabel = spreadKind === "cover" ? "Cover Spread" : "Interior Spread"
-  const rightPageLayout = spreadKind === "cover" ? leftLayout : rightLayout
+  const rightPageLayout =
+    spreadKind === "cover" ? rightLayout || leftLayout : rightLayout
 
   return (
     <div className="flex-1 bg-gradient-to-br from-muted via-background to-muted/30 overflow-auto">

@@ -7,6 +7,7 @@ export const COVER_LAYOUTS: Layout[] = [
     category: "cover",
     photoCount: 2,
     quoteCount: 0,
+    tooltip: "One photo on the back cover and one on the front cover.",
     slots: [
       {
         id: "cover-photo-back",
@@ -34,6 +35,7 @@ export const COVER_LAYOUTS: Layout[] = [
     category: "cover",
     photoCount: 1,
     quoteCount: 0,
+    tooltip: "A single front-cover photo with a band for title text.",
     slots: [
       {
         id: "cover-photo-front",
@@ -52,6 +54,7 @@ export const COVER_LAYOUTS: Layout[] = [
     category: "cover",
     photoCount: 3,
     quoteCount: 0,
+    tooltip: "Three photos arranged in a mosaic on the front cover.",
     slots: [
       {
         id: "cover-photo-front-large",

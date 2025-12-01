@@ -228,7 +228,7 @@ export default function BookDesignerClient({
 
   const spreadKinds = useMemo(
     () => pages.map((_, index) => getSpreadKind(index)),
-    [pages.length]
+    [pages]
   )
 
   const activeSpread = pages[activeSpreadIndex]
@@ -432,8 +432,7 @@ export default function BookDesignerClient({
       if (!targetSpread) return
 
       setSelectedPhotoCount(layoutDef.photoCount || 1)
-      const targetKind =
-        targetSpread.kind ?? inferSpreadKind(targetIndex, Math.max(pages.length, 1))
+      const targetKind = targetSpread.kind ?? getSpreadKind(targetIndex)
       const isCover = targetKind === "cover"
 
       updateSpreadAtIndex(targetIndex, (spread) => {
@@ -675,7 +674,7 @@ export default function BookDesignerClient({
         variant: "destructive",
       })
     }
-  }, [book.id, pages.length, toast])
+  }, [book.id, pages, toast])
 
   // Remove item from page
   const handleRemoveItem = (spreadIndex: number, itemId: string) => {

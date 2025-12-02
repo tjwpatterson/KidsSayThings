@@ -92,7 +92,7 @@ export default function BookCanvas({
     <div className="flex-1 bg-gradient-to-br from-muted via-background to-muted/30 overflow-hidden">
       <div ref={scrollContainerRef} className="h-full overflow-y-auto">
         <div
-          className="w-full max-w-6xl mx-auto py-10 px-6 space-y-10"
+          className="w-full max-w-6xl mx-auto py-10 px-6 flex flex-col gap-10 pb-20"
           style={{ zoom: `${zoom}%`, transformOrigin: "top center" }}
         >
           {spreads.length === 0 ? (
@@ -170,7 +170,7 @@ function SpreadPair({
     <div
       ref={containerRef}
       className={cn(
-        "relative bg-white rounded-[32px] border border-border/40 p-8 shadow-xl transition-all",
+        "relative bg-white rounded-[32px] border border-border/40 p-8 shadow-xl transition-all min-h-[520px]",
         active ? "ring-2 ring-primary shadow-2xl" : "shadow-lg"
       )}
     >

@@ -45,6 +45,7 @@ export default function BookCanvas({
   onRemoveItem,
   buildDroppableId,
   onScrollApiChange,
+  onScrollApiChange,
 }: BookCanvasProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const spreadRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -89,38 +90,41 @@ export default function BookCanvas({
   }, [spreads, onActiveSpreadChange])
 
   return (
-    <div className="flex-1 bg-gradient-to-br from-muted via-background to-muted/30 overflow-hidden">
-      <div ref={scrollContainerRef} className="h-full overflow-y-auto">
-        <div
-          className="w-full max-w-6xl mx-auto py-10 px-6 flex flex-col gap-10 pb-20"
-          style={{ zoom: `${zoom}%`, transformOrigin: "top center" }}
-        >
-          {spreads.length === 0 ? (
-            <div className="rounded-[32px] border border-dashed border-border/50 bg-white/80 p-10 text-center text-sm text-muted-foreground">
-              No spreads yet. Use the layouts panel or Manage Pages to add your first spread.
-            </div>
-          ) : (
-            spreads.map((spread, index) => (
-              <SpreadPair
-                key={spread.id || index}
-                spread={spread}
-                spreadIndex={index}
-                spreadKind={spreadKinds[index] ?? "cover"}
-                spreadLabel={spreadLabels[index] || `Spread ${index + 1}`}
-                active={activeSpreadIndex === index}
-                photos={photos}
-                quotes={quotes}
-                persons={persons}
-                layoutsById={layoutsById}
-                onRemoveItem={onRemoveItem}
-                containerRef={(node) => {
-                  spreadRefs.current[index] = node
-                }}
-                buildDroppableId={buildDroppableId}
-              />
-            ))
-          )}
-        </div>
+    <div
+      ref={scrollContainerRef}
+      className={cn(
+        "flex-1 bg-gradient-to-br from-muted via-background to-muted/30 overflow-y-auto"
+      )}
+    >
+      <div
+        className="w-full max-w-6xl mx-auto py-10 px-6 flex flex-col gap-10 pb-20"
+        style={{ zoom: `${zoom}%`, transformOrigin: "top center" }}
+      >
+        {spreads.length === 0 ? (
+          <div className="rounded-[32px] border border-dashed border-border/50 bg-white/80 p-10 text-center text-sm text-muted-foreground">
+            No spreads yet. Use the layouts panel or Manage Pages to add your first spread.
+          </div>
+        ) : (
+          spreads.map((spread, index) => (
+            <SpreadPair
+              key={spread.id || index}
+              spread={spread}
+              spreadIndex={index}
+              spreadKind={spreadKinds[index] ?? "cover"}
+              spreadLabel={spreadLabels[index] || `Spread ${index + 1}`}
+              active={activeSpreadIndex === index}
+              photos={photos}
+              quotes={quotes}
+              persons={persons}
+              layoutsById={layoutsById}
+              onRemoveItem={onRemoveItem}
+              containerRef={(node) => {
+                spreadRefs.current[index] = node
+              }}
+              buildDroppableId={buildDroppableId}
+            />
+          ))
+        )}
       </div>
     </div>
   )

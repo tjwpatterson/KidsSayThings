@@ -747,41 +747,39 @@ export default function BookDesignerClient({
           </ResizableSidebar>
 
           {/* Center Canvas */}
-          <div className="flex-1 overflow-hidden">
-            {viewMode === "edit" ? (
-              <BookCanvas
-                spreads={pages}
-                spreadKinds={spreadKinds}
-                spreadLabels={spreadLabels}
-                activeSpreadIndex={activeSpreadIndex}
-                zoom={zoom}
-                photos={allPhotos}
-                quotes={allQuotes}
-                persons={initialPersons}
-                layoutsById={LAYOUTS_BY_ID}
-                onActiveSpreadChange={(index) => setActiveSpreadIndex(index)}
-                onRemoveItem={handleRemoveItem}
-                buildDroppableId={buildSlotDroppableId}
-                onScrollApiChange={(fn) => {
-                  if (fn) {
-                    scrollToSpreadRef.current = fn
-                  }
-                }}
-              />
-            ) : (
-              <BookManagePages
-                spreads={pages}
-                currentIndex={activeSpreadIndex}
-                onSelectSpread={(index) => {
-                  setActiveSpreadIndex(index)
-                  setViewMode("edit")
-                  scrollToSpreadRef.current(index)
-                }}
-                onAddSpread={() => handleAddSpread()}
-                getLabel={getSpreadLabel}
-              />
-            )}
-          </div>
+          {viewMode === "edit" ? (
+            <BookCanvas
+              spreads={pages}
+              spreadKinds={spreadKinds}
+              spreadLabels={spreadLabels}
+              activeSpreadIndex={activeSpreadIndex}
+              zoom={zoom}
+              photos={allPhotos}
+              quotes={allQuotes}
+              persons={initialPersons}
+              layoutsById={LAYOUTS_BY_ID}
+              onActiveSpreadChange={(index) => setActiveSpreadIndex(index)}
+              onRemoveItem={handleRemoveItem}
+              buildDroppableId={buildSlotDroppableId}
+              onScrollApiChange={(fn) => {
+                if (fn) {
+                  scrollToSpreadRef.current = fn
+                }
+              }}
+            />
+          ) : (
+            <BookManagePages
+              spreads={pages}
+              currentIndex={activeSpreadIndex}
+              onSelectSpread={(index) => {
+                setActiveSpreadIndex(index)
+                setViewMode("edit")
+                scrollToSpreadRef.current(index)
+              }}
+              onAddSpread={() => handleAddSpread()}
+              getLabel={getSpreadLabel}
+            />
+          )}
         </div>
       </div>
 

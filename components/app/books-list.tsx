@@ -14,8 +14,8 @@ import {
 } from "@/components/ui/dialog"
 import { Plus, Download, Loader2, Trash2, Edit, Clock } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import Link from "next/link"
 import { format, formatDistanceToNow } from "date-fns"
+import Link from "next/link"
 import type { Book } from "@/lib/types"
 import { useRouter } from "next/navigation"
 
@@ -29,6 +29,7 @@ export default function BooksList({ householdId }: BooksListProps) {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
+  const [creating, setCreating] = useState(false)
   const supabase = createClient()
   const { toast } = useToast()
   const router = useRouter()
@@ -147,6 +148,52 @@ export default function BooksList({ householdId }: BooksListProps) {
     return <div className="text-center py-8 text-muted-foreground">Loading...</div>
   }
 
+  const handleCreateBook = async () => {
+    setCreating(true)
+    try {
+      const today = new Date()
+      const oneYearAgo = new Date()
+      oneYearAgo.setFullYear(today.getFullYear() - 1)
+
+      const response = await fetch("/api/books", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date_start: oneYearAgo.toISOString().split("T")[0],
+          date_end: today.toISOString().split("T")[0],
+          title: null,
+          size: "6x9",
+          theme: "classic",
+          cover_style: "linen",
+          dedication: null,
+          page_count: 24,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to create book")
+      }
+
+      const book = await response.json()
+
+      toast({
+        title: "Book created",
+        description: "Draft saved. Redirecting you to the designer.",
+      })
+
+      router.push(`/app/books/${book.id}/design`)
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create book",
+        variant: "destructive",
+      })
+    } finally {
+      setCreating(false)
+    }
+  }
+
   return (
     <div>
       <div className="mb-6 flex flex-wrap gap-3">
@@ -167,12 +214,10 @@ export default function BooksList({ householdId }: BooksListProps) {
             </>
           )}
         </Button>
-        <Link href="/app/books/new">
-          <Button variant="secondary">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Custom Book
-          </Button>
-        </Link>
+        <Button variant="secondary" onClick={handleCreateBook} disabled={creating}>
+          <Plus className="h-4 w-4 mr-2" />
+          {creating ? "Creating Draft…" : "Create Custom Book"}
+        </Button>
       </div>
 
       {books.length === 0 ? (

@@ -2,7 +2,7 @@
 
 import { useDraggable } from "@dnd-kit/core"
 import { ChevronUp, ChevronDown, X } from "lucide-react"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import type { BookPhoto } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
@@ -10,13 +10,20 @@ import { useToast } from "@/components/ui/use-toast"
 interface BookPhotoCarouselProps {
   photos?: BookPhoto[]
   bookId: string
+  usedPhotoIds?: string[]
   onPhotoDeleted?: (photoId: string) => void
 }
 
-export default function BookPhotoCarousel({ photos = [], bookId, onPhotoDeleted }: BookPhotoCarouselProps) {
+export default function BookPhotoCarousel({
+  photos = [],
+  bookId,
+  usedPhotoIds = [],
+  onPhotoDeleted,
+}: BookPhotoCarouselProps) {
   const [scrollPosition, setScrollPosition] = useState(0)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
+  const usedPhotoSet = useMemo(() => new Set(usedPhotoIds), [usedPhotoIds])
 
   const scroll = (direction: "up" | "down") => {
     if (!scrollContainerRef.current) return
@@ -70,6 +77,7 @@ export default function BookPhotoCarousel({ photos = [], bookId, onPhotoDeleted 
               key={photo.id} 
               photo={photo} 
               bookId={bookId}
+              inUse={usedPhotoSet.has(photo.id)}
               onDeleted={onPhotoDeleted}
             />
           ))
@@ -88,13 +96,15 @@ export default function BookPhotoCarousel({ photos = [], bookId, onPhotoDeleted 
   )
 }
 
-function DraggablePhoto({ 
-  photo, 
+function DraggablePhoto({
+  photo,
   bookId,
-  onDeleted 
-}: { 
+  inUse = false,
+  onDeleted,
+}: {
   photo: BookPhoto
   bookId: string
+  inUse?: boolean
   onDeleted?: (photoId: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
@@ -177,6 +187,11 @@ function DraggablePhoto({
       }`}
     >
       <div className="border rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow relative group">
+        {inUse && (
+          <span className="absolute top-2 left-2 z-20 text-[10px] uppercase tracking-wide bg-secondary/90 text-secondary-foreground px-2 py-0.5 rounded-full shadow">
+            In layout
+          </span>
+        )}
         {/* Delete button - appears on hover, positioned outside drag area */}
         <button
           onClick={handleDelete}

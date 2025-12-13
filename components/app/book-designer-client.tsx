@@ -727,7 +727,8 @@ export default function BookDesignerClient({
             <BookSidebarContent
               activeTab={activeSidebarTab}
               quotes={quotes}
-              photos={photos}
+              photos={allPhotos}
+              usedPhotoIds={Array.from(usedPhotoIds)}
               persons={initialPersons}
               book={book}
               bookId={book.id}

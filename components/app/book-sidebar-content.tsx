@@ -65,6 +65,7 @@ interface BookSidebarContentProps {
   activeTab: SidebarTab
   quotes?: Entry[]
   photos?: BookPhoto[]
+  usedPhotoIds?: string[]
   persons?: Person[]
   book: Book
   bookId: string
@@ -86,6 +87,7 @@ export default function BookSidebarContent({
   activeTab,
   quotes = [],
   photos = [],
+  usedPhotoIds = [],
   persons = [],
   book,
   bookId,
@@ -139,6 +141,8 @@ export default function BookSidebarContent({
   }
 
   if (activeTab === "photos") {
+    // Photos in this panel are always sourced from the persisted `book_photos` rows via /api/books/[id]/photos.
+    // Uploads call the same API, immediately storing metadata so users can leave and return without losing images.
     return (
       <div className="flex-1 border-r border-border/50 bg-gradient-to-b from-background to-muted/20 flex flex-col overflow-hidden min-w-[200px]">
         <div className="p-4 border-b">
@@ -154,11 +158,15 @@ export default function BookSidebarContent({
               Upload
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground">
+            Photos are auto-saved per book. You can leave and come back anytime.
+          </p>
         </div>
         <div className="flex-1 overflow-y-auto">
           <BookPhotoCarousel 
             photos={photos || []} 
             bookId={bookId}
+            usedPhotoIds={usedPhotoIds}
             onPhotoDeleted={async () => {
               // Reload photos from server after deletion
               try {

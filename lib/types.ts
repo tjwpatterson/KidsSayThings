@@ -157,6 +157,7 @@ export interface BookPhoto {
   width: number | null
   height: number | null
   filename: string | null
+  path?: string | null
   created_at: string
 }
 

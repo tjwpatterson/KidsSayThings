@@ -123,30 +123,18 @@ export default function BookDesignPageClient() {
             right_content: [],
           })) || []
 
-        // Fetch photos and generate signed URLs
-        const { data: photos } = await supabase
-          .from("book_photos")
-          .select("*")
-          .eq("book_id", id)
-          .order("created_at", { ascending: false })
-
-        // Generate signed URLs for photos
+        // Fetch photos via API so we always reuse the persisted library (with signed URLs)
         let photosWithSignedUrls: BookPhoto[] = []
-        if (photos && photos.length > 0) {
-          try {
-            // Use API route to get signed URLs
-            const res = await fetch(`/api/books/${id}/photos`)
-            if (res.ok) {
-              const signedUrls = await res.json()
-              photosWithSignedUrls = signedUrls || photos
-            } else {
-              console.warn("Failed to get signed URLs, using original URLs")
-              photosWithSignedUrls = photos
-            }
-          } catch (error) {
-            console.error("Error fetching signed URLs:", error)
-            photosWithSignedUrls = photos // Fallback to original URLs
+        try {
+          const photosRes = await fetch(`/api/books/${id}/photos`, { cache: "no-store" })
+          if (photosRes.ok) {
+            photosWithSignedUrls = (await photosRes.json()) || []
+          } else {
+            const errorPayload = await photosRes.json().catch(() => null)
+            console.error("Failed to load photos:", errorPayload)
           }
+        } catch (error) {
+          console.error("Error fetching persisted photos:", error)
         }
 
         setData({

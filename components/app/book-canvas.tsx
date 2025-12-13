@@ -45,7 +45,6 @@ export default function BookCanvas({
   onRemoveItem,
   buildDroppableId,
   onScrollApiChange,
-  onScrollApiChange,
 }: BookCanvasProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const spreadRefs = useRef<(HTMLDivElement | null)[]>([])

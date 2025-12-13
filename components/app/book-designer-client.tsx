@@ -715,7 +715,7 @@ export default function BookDesignerClient({
         />
 
         {/* Main Content Area */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden min-h-0">
           {/* Left Sidebar - Icon Menu */}
           <BookLeftSidebar
             activeTab={activeSidebarTab}
@@ -748,37 +748,41 @@ export default function BookDesignerClient({
 
           {/* Center Canvas */}
           {viewMode === "edit" ? (
-            <BookCanvas
-              spreads={pages}
-              spreadKinds={spreadKinds}
-              spreadLabels={spreadLabels}
-              activeSpreadIndex={activeSpreadIndex}
-              zoom={zoom}
-              photos={allPhotos}
-              quotes={allQuotes}
-              persons={initialPersons}
-              layoutsById={LAYOUTS_BY_ID}
-              onActiveSpreadChange={(index) => setActiveSpreadIndex(index)}
-              onRemoveItem={handleRemoveItem}
-              buildDroppableId={buildSlotDroppableId}
-              onScrollApiChange={(fn) => {
-                if (fn) {
-                  scrollToSpreadRef.current = fn
-                }
-              }}
-            />
+            <div className="flex-1 min-h-0 flex">
+              <BookCanvas
+                spreads={pages}
+                spreadKinds={spreadKinds}
+                spreadLabels={spreadLabels}
+                activeSpreadIndex={activeSpreadIndex}
+                zoom={zoom}
+                photos={allPhotos}
+                quotes={allQuotes}
+                persons={initialPersons}
+                layoutsById={LAYOUTS_BY_ID}
+                onActiveSpreadChange={(index) => setActiveSpreadIndex(index)}
+                onRemoveItem={handleRemoveItem}
+                buildDroppableId={buildSlotDroppableId}
+                onScrollApiChange={(fn) => {
+                  if (fn) {
+                    scrollToSpreadRef.current = fn
+                  }
+                }}
+              />
+            </div>
           ) : (
-            <BookManagePages
-              spreads={pages}
-              currentIndex={activeSpreadIndex}
-              onSelectSpread={(index) => {
-                setActiveSpreadIndex(index)
-                setViewMode("edit")
-                scrollToSpreadRef.current(index)
-              }}
-              onAddSpread={() => handleAddSpread()}
-              getLabel={getSpreadLabel}
-            />
+            <div className="flex-1 overflow-y-auto">
+              <BookManagePages
+                spreads={pages}
+                currentIndex={activeSpreadIndex}
+                onSelectSpread={(index) => {
+                  setActiveSpreadIndex(index)
+                  setViewMode("edit")
+                  scrollToSpreadRef.current(index)
+                }}
+                onAddSpread={() => handleAddSpread()}
+                getLabel={getSpreadLabel}
+              />
+            </div>
           )}
         </div>
       </div>

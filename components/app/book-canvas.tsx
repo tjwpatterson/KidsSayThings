@@ -92,7 +92,7 @@ export default function BookCanvas({
     <div
       ref={scrollContainerRef}
       className={cn(
-        "flex-1 bg-gradient-to-br from-muted via-background to-muted/30 overflow-y-auto"
+        "flex-1 h-full min-h-0 bg-gradient-to-br from-muted via-background to-muted/30 overflow-y-auto"
       )}
     >
       <div

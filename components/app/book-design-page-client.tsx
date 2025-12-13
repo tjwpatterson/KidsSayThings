@@ -120,7 +120,7 @@ export default function BookDesignPageClient() {
           pagesData?.map((page) => ({
             ...page,
             left_content: (page.left_content as any) || [],
-            right_content: [],
+            right_content: (page.right_content as any) || [],
           })) || []
 
         // Fetch photos via API so we always reuse the persisted library (with signed URLs)

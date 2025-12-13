@@ -323,6 +323,13 @@ export default function BookDesignerClient({
           right_content: spread.right_content || [],
         }
 
+        if (process.env.NODE_ENV !== "production") {
+          console.debug("[BookDesigner] Saving spread", {
+            bookId: book.id,
+            payload,
+          })
+        }
+
         const res = await fetch(`/api/books/${book.id}/pages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -330,7 +337,20 @@ export default function BookDesignerClient({
         })
 
         if (!res.ok) {
-          throw new Error("Failed to save spread")
+          const errorBody = await res.json().catch(() => null)
+          const message = errorBody?.error || res.statusText || "Failed to save spread"
+          if (process.env.NODE_ENV !== "production") {
+            console.error("[BookDesigner] Spread save failed", {
+              status: res.status,
+              message,
+              payload,
+            })
+          }
+          throw new Error(message)
+        }
+
+        if (process.env.NODE_ENV !== "production") {
+          console.debug("[BookDesigner] Spread saved successfully")
         }
       } catch (error: any) {
         toast({

@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -30,35 +29,41 @@ export default function BooksList({ householdId }: BooksListProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
   const [creating, setCreating] = useState(false)
-  const supabase = createClient()
   const { toast } = useToast()
   const router = useRouter()
 
-  useEffect(() => {
-    loadBooks()
-  }, [householdId])
+  const loadBooks = useCallback(async () => {
+    if (!householdId) return
 
-  const loadBooks = async () => {
+    setLoading(true)
     try {
-      const { data, error } = await supabase
-        .from("books")
-        .select("*")
-        .eq("household_id", householdId)
-        .order("updated_at", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false })
+      const response = await fetch("/api/books", {
+        method: "GET",
+        cache: "no-store",
+      })
 
-      if (error) throw error
-      setBooks(data || [])
+      const payload = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to load books")
+      }
+
+      setBooks(payload || [])
     } catch (error: any) {
+      console.error("Failed to load books", error)
       toast({
         title: "Error",
-        description: "Failed to load books",
+        description: error.message || "Failed to load books",
         variant: "destructive",
       })
     } finally {
       setLoading(false)
     }
-  }
+  }, [householdId, toast])
+
+  useEffect(() => {
+    loadBooks()
+  }, [loadBooks])
 
   const handleAutoGenerateYear = async () => {
     setGenerating(true)
